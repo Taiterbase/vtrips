@@ -1,0 +1,15 @@
+FROM golang:1.22-alpine AS builder
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o /frontend.bin ./cmd/main.go
+
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /frontend.bin /frontend.bin
+RUN chmod 755 /frontend.bin
+ENTRYPOINT ["/frontend.bin"]

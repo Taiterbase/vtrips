@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: backend-image
+        ports:
+        - containerPort: 8080
+        env:
+          - name: HTTP_PORT
+            value: "8080"
+          - name: HTTP_HOST
+            value: "0.0.0.0"
+          - name: APP_NAME
+            value: backend
+          - name: CONFIG_LOCATION
+            value: file://config/config.json
+          - name: LOG_LEVEL
+            value: DEBUG
+          - name: DB_CONNECTION_URL
+            value: {{ .Values.db.connectionUrl }}

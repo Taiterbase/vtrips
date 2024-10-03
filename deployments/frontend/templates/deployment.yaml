@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: frontend-image
+        ports:
+        - containerPort: 8080
+        env:
+          - name: HTTP_PORT
+            value: "8080"
+          - name: HTTP_HOST
+            value: "0.0.0.0"
+          - name: APP_NAME
+            value: frontend
+          - name: LOG_LEVEL
+            value: DEBUG

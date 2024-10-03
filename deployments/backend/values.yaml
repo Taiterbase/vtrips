@@ -1,0 +1,13 @@
+app:
+  name: backend
+
+serviceAccount:
+  create: true
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+db:
+  connectionUrl: "jdbc:postgresql://postgres:password@localhost:5432/vtrips"

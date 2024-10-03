@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrations
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrations
+          image: migrations-image
+          env:
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "voluntrips"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql
+                  key: postgres-password
+            - name: POSTGRES_HOST
+              value: "postgresql.default.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+      restartPolicy: Never

@@ -1,0 +1,5 @@
+FROM gomicro/goose
+
+ADD ./migrations /migrations/
+RUN chmod 755 /migrations/migrate.sh
+ENTRYPOINT ["/migrations/migrate.sh"]

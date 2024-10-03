@@ -1,0 +1,5 @@
+apiVersion: v2
+name: migrations
+description: A k8s job for running db migrations
+version: 0.1.0
+appVersion: 0.1.0
