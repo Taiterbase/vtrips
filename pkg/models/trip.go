@@ -46,9 +46,9 @@ type TripBase struct {
 	UpdatedAt int64  `json:"updated_at" dynamodbav:",unixtime"`
 	DeletedAt int64  `json:"deleted_at" dynamodbav:",unixtime"`
 
-	HousingType HousingType `json:"housing_type" dynamodbav:"housing_type" validate:"required"`
-	PrivacyType PrivacyType `json:"privacy_type" dynamodbav:"privacy_type" validate:"required"`
-	TripType    TripType    `json:"trip_type" dynamodbav:"trip_type" validate:"required"`
+	HousingType HousingType `json:"housing_type" dynamodbav:"housing_type"`
+	PrivacyType PrivacyType `json:"privacy_type" dynamodbav:"privacy_type"`
+	TripType    TripType    `json:"trip_type" dynamodbav:"trip_type"`
 
 	// task will be to maintain a list of indexes for each of these fields, or a combination of these fields
 	Latitude       float64    `json:"latitude" dynamodbav:"latitude"`
