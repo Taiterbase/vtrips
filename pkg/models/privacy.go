@@ -12,7 +12,7 @@ const (
 )
 
 func (p PrivacyType) String() string {
-	return [...]string{"shared", "private", "complete"}[p]
+	return [...]string{"shared", "private", "complete", "other"}[p]
 }
 
 func (p PrivacyType) Int() int {
@@ -27,6 +27,8 @@ func (p PrivacyType) MarshalJSON() ([]byte, error) {
 		return []byte("private"), nil
 	case CompletePrivacy:
 		return []byte("complete"), nil
+	case OtherPrivacy:
+		return []byte("other"), nil
 	default:
 		return []byte("other"), nil
 	}
@@ -60,6 +62,8 @@ func (p *PrivacyType) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) e
 			*p = PrivatePrivacy
 		case "complete":
 			*p = CompletePrivacy
+		case "other":
+			*p = OtherPrivacy
 		default:
 			*p = OtherPrivacy
 		}

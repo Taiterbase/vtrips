@@ -15,7 +15,7 @@ const (
 )
 
 func (h HousingType) String() string {
-	return [...]string{"camping", "hostel", "hotel", "dormitory", "apartment", "house"}[h]
+	return [...]string{"camping", "hostel", "hotel", "dormitory", "apartment", "house", "other"}[h]
 }
 
 func (h HousingType) Int() int {
@@ -36,6 +36,8 @@ func (h HousingType) MarshalJSON() ([]byte, error) {
 		return []byte("apartment"), nil
 	case HouseHousing:
 		return []byte("house"), nil
+	case OtherHousing:
+		return []byte("other"), nil
 	default:
 		return []byte("other"), nil
 	}
@@ -55,6 +57,8 @@ func (h HousingType) UnmarshalJSON(b []byte) error {
 		h = ApartmentHousing
 	case "house":
 		h = HouseHousing
+	case "other":
+		h = OtherHousing
 	default:
 		h = OtherHousing
 	}
@@ -81,6 +85,8 @@ func (h *HousingType) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) e
 			*h = ApartmentHousing
 		case "house":
 			*h = HouseHousing
+		case "other":
+			*h = OtherHousing
 		default:
 			*h = OtherHousing
 		}
