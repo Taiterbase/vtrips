@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/labstack/echo"
+	"github.com/labstack/gommon/log"
 )
 
 func CreateTrip(c echo.Context) error {
@@ -19,10 +20,13 @@ func CreateTrip(c echo.Context) error {
 		clientID = c.QueryParam("client_id")
 	)
 
+	trip.SetClientID(clientID)
+	c.Logger().Debugj(log.JSON{"trip": trip})
 	err := c.Bind(&trip)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, "Invalid request body")
 	}
+	c.Logger().Debugj(log.JSON{"trip": trip})
 	if err = trip.Validate(); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -31,8 +35,8 @@ func CreateTrip(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	item["PK"] = &attributevalue.AttributeValueMemberS{Value: index.MakePK(clientID)}
-	item["SK"] = &attributevalue.AttributeValueMemberS{Value: index.MakeSK(trip.GetID())}
+	item["PK"] = &types.AttributeValueMemberS{Value: index.MakePK(clientID)}
+	item["SK"] = &types.AttributeValueMemberS{Value: index.MakeSK(trip.GetID())}
 	tx := &dynamodb.TransactWriteItemsInput{
 		TransactItems: []types.TransactWriteItem{
 			{
@@ -44,16 +48,16 @@ func CreateTrip(c echo.Context) error {
 		},
 	}
 
+	for _, action := range trip.GetWriteActions() {
+		action.Add(tx, clientID, trip)
+	}
+
 	out, err := storage.Client.TransactWriteItems(c.Request().Context(), tx)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	// now add any write actions for manually maintained indexes
-	// then add any transactions on top of this create if needed
-	// then execute the write transaction
-
-	return nil
+	return c.JSON(http.StatusOK, out)
 }
 
 func GetTrip(c echo.Context) error {
@@ -68,7 +72,7 @@ func DeleteTrip(c echo.Context) error {
 	return nil
 }
 
-func ListTrip(c echo.Context) error {
+func ListTrips(c echo.Context) error {
 	return nil
 }
 

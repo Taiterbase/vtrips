@@ -33,13 +33,15 @@ func StartAPI() {
 }
 
 func setupRouters(eng *echo.Echo) {
-	eng.POST("/v1/trips", CreateTrip)
-	eng.GET("/v1/trips/:id", GetTrip)
-	eng.PUT("/v1/trips/:id", UpdateTrip)
-	eng.DELETE("/v1/trips/:id", DeleteTrip)
-	eng.GET("/v1/trips", ListTrip)
+	eng.GET("/v1/trips", ListTrips)
 
 	// bulk operations
 	eng.PUT("/v1/trips", UpdateTrips)
 	eng.DELETE("/v1/trips", DeleteTrips)
+
+	// item operations
+	eng.POST("/v1/trips", CreateTrip)
+	eng.GET("/v1/trips/:id", GetTrip)
+	eng.PUT("/v1/trips/:id", UpdateTrip)
+	eng.DELETE("/v1/trips/:id", DeleteTrip)
 }
