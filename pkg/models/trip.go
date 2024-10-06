@@ -3,79 +3,13 @@ package models
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	validate "github.com/go-playground/validator/v10"
 	ulid "github.com/oklog/ulid/v2"
 )
 
-type TripType int
-
-const (
-	OtherTrip TripType = iota
-	LocalTrip
-	DomesticTrip
-	InternationalTrip
-)
-
-func (t TripType) String() string {
-	return [...]string{"local", "domestic", "international"}[t]
-}
-
-func (t TripType) Int() int {
-	return int(t)
-}
-
-func (t TripType) MarshalJSON() ([]byte, error) {
-	switch t {
-	case LocalTrip:
-		return []byte("local"), nil
-	case DomesticTrip:
-		return []byte("domestic"), nil
-	case InternationalTrip:
-		return []byte("international"), nil
-	default:
-		return []byte("other"), nil
-	}
-}
-
-func (t TripType) UnmarshalJSON(b []byte) error {
-	switch string(b) {
-	case "local":
-		t = LocalTrip
-	case "domestic":
-		t = DomesticTrip
-	case "international":
-		t = InternationalTrip
-	default:
-		t = LocalTrip
-	}
-	return nil
-}
-
-func (t TripType) MarshalDynamoDBAttributeValue() (types.AttributeValue, error) {
-	return &types.AttributeValueMemberS{Value: t.String()}, nil
-}
-
-func (t *TripType) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) error {
-	switch av := av.(type) {
-	case *types.AttributeValueMemberS:
-		switch av.Value {
-		case "local":
-			*t = LocalTrip
-		case "domestic":
-			*t = DomesticTrip
-		case "international":
-			*t = InternationalTrip
-		default:
-			*t = OtherTrip
-		}
-	default:
-		*t = TripType(OtherTrip)
-	}
-	return nil
-}
-
 type Trip interface {
+	Indexer
 	GetID() string
 	GetClientID() string
 	GetCreatedAt() int64
@@ -139,6 +73,7 @@ func NewTrip() Trip {
 		HousingType: OtherHousing,
 		PrivacyType: OtherPrivacy,
 		TripType:    OtherTrip,
+		Status:      TripStatusDraft,
 	}
 }
 
@@ -205,4 +140,36 @@ func (t *TripBase) SetTripType(tripType TripType) {
 // SetDeletedAt sets the deletion timestamp of the trip
 func (t *TripBase) SetDeletedAt(deletedAt int64) {
 	t.DeletedAt = deletedAt
+}
+
+func (t *TripBase) GetWriteActions() []WriteAction {
+	return []WriteAction{
+		{
+			Add: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
+				return nil
+			},
+			Update: func(tx *dynamodb.TransactWriteItemsInput, clientID string, oldTrip Trip, newTrip Trip) error {
+				return nil
+			},
+			Delete: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
+				return nil
+			},
+		},
+	}
+}
+
+func (t *TripBase) GetCascadeActions() []CascadeAction {
+	return []CascadeAction{
+		{
+			Add: func(trips []Trip, trip Trip) ([]*dynamodb.TransactWriteItemsInput, error) {
+				return nil, nil
+			},
+			Update: func(trips []Trip, trip Trip, updatedAttributes []string) ([]*dynamodb.TransactWriteItemsInput, error) {
+				return nil, nil
+			},
+			Delete: func(trips []Trip, trip Trip) ([]*dynamodb.TransactWriteItemsInput, error) {
+				return nil, nil
+			},
+		},
+	}
 }
