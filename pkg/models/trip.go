@@ -3,13 +3,11 @@ package models
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	validate "github.com/go-playground/validator/v10"
 	ulid "github.com/oklog/ulid/v2"
 )
 
 type Trip interface {
-	Indexer
 	GetID() string
 	GetClientID() string
 	GetCreatedAt() int64
@@ -43,25 +41,42 @@ type TripBase struct {
 	ID        string `json:"id" dynamodbav:"id" validate:"required"`
 	ClientID  string `json:"client_id" dynamodbav:"client_id" validate:"required"`
 	CreatedAt int64  `json:"created_at" dynamodbav:"created_at,unixtime"`
-	UpdatedAt int64  `json:"updated_at" dynamodbav:"updated_at,unixtime"`
-	DeletedAt int64  `json:"deleted_at" dynamodbav:"deleted_at,unixtime"`
+	UpdatedAt int64  `json:"updated_at" dynamodbav:"updated_at,unixtime" updateable:"true"`
+	DeletedAt int64  `json:"deleted_at" dynamodbav:"deleted_at,unixtime" updateable:"true"`
 
-	HousingType HousingType `json:"housing_type" dynamodbav:"housing_type"`
-	PrivacyType PrivacyType `json:"privacy_type" dynamodbav:"privacy_type"`
-	TripType    TripType    `json:"trip_type" dynamodbav:"trip_type"`
+	HousingType    HousingType `json:"housing_type" dynamodbav:"housing_type" updateable:"true"`
+	PrivacyType    PrivacyType `json:"privacy_type" dynamodbav:"privacy_type" updateable:"true"`
+	TripType       TripType    `json:"trip_type" dynamodbav:"trip_type" updateable:"true"`
+	Latitude       float64     `json:"latitude" dynamodbav:"latitude" updateable:"true"`
+	Longtitude     float64     `json:"longtitude" dynamodbav:"longtitude" updateable:"true"`
+	Status         TripStatus  `json:"status" dynamodbav:"status" updateable:"true"`
+	VolunteerLimit int         `json:"volunteer_limit" dynamodbav:"volunteer_limit" updateable:"true"`
+	Name           string      `json:"name" dynamodbav:"name" updateable:"true"`
+	Description    string      `json:"description" dynamodbav:"description" updateable:"true"`
+	Mission        string      `json:"mission" dynamodbav:"mission" updateable:"true"`
+	Price          float64     `json:"price" dynamodbav:"price" updateable:"true"`
+	Currency       string      `json:"currency" dynamodbav:"currency" updateable:"true"`
+	StartDate      int64       `json:"start_date" dynamodbav:"start_date,unixtime" updateable:"true"`
+	EndDate        int64       `json:"end_date" dynamodbav:"end_date,unixtime" updateable:"true"`
+}
 
-	// task will be to maintain a list of indexes for each of these fields, or a combination of these fields
-	Latitude       float64    `json:"latitude" dynamodbav:"latitude"`
-	Longtitude     float64    `json:"longtitude" dynamodbav:"longtitude"`
-	Status         TripStatus `json:"status" dynamodbav:"status"`
-	VolunteerLimit int        `json:"volunteer_limit" dynamodbav:"volunteer_limit"`
-	Name           string     `json:"name" dynamodbav:"name"`
-	Description    string     `json:"description" dynamodbav:"description"`
-	Mission        string     `json:"mission" dynamodbav:"mission"`
-	Price          float64    `json:"price" dynamodbav:"price"`
-	Currency       string     `json:"currency" dynamodbav:"currency"`
-	StartDate      int64      `json:"start_date" dynamodbav:"start_date,unixtime"`
-	EndDate        int64      `json:"end_date" dynamodbav:"end_date,unixtime"`
+var updateFields = []string{
+	"updated_at",
+	"deleted_at",
+	"housing_type",
+	"privacy_type",
+	"trip_type",
+	"latitude",
+	"longtitude",
+	"status",
+	"volunteer_limit",
+	"name",
+	"description",
+	"mission",
+	"price",
+	"currency",
+	"start_date",
+	"end_date",
 }
 
 func NewTrip() Trip {
@@ -140,36 +155,4 @@ func (t *TripBase) SetTripType(tripType TripType) {
 // SetDeletedAt sets the deletion timestamp of the trip
 func (t *TripBase) SetDeletedAt(deletedAt int64) {
 	t.DeletedAt = deletedAt
-}
-
-func (t *TripBase) GetWriteActions() []WriteAction {
-	return []WriteAction{
-		{
-			Add: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
-				return nil
-			},
-			Update: func(tx *dynamodb.TransactWriteItemsInput, clientID string, oldTrip Trip, newTrip Trip) error {
-				return nil
-			},
-			Delete: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
-				return nil
-			},
-		},
-	}
-}
-
-func (t *TripBase) GetCascadeActions() []CascadeAction {
-	return []CascadeAction{
-		{
-			Add: func(trips []Trip, trip Trip) ([]*dynamodb.TransactWriteItemsInput, error) {
-				return nil, nil
-			},
-			Update: func(trips []Trip, trip Trip, updatedAttributes []string) ([]*dynamodb.TransactWriteItemsInput, error) {
-				return nil, nil
-			},
-			Delete: func(trips []Trip, trip Trip) ([]*dynamodb.TransactWriteItemsInput, error) {
-				return nil, nil
-			},
-		},
-	}
 }
