@@ -1,9 +1,6 @@
 app:
   name: backend
 
-serviceAccount:
-  create: true
-
 service:
   type: ClusterIP
   port: 80
