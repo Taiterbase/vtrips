@@ -42,9 +42,9 @@ type TripBase struct {
 	SK        string `json:"-" dynamodbav:"sk"`
 	ID        string `json:"id" dynamodbav:"id" validate:"required"`
 	ClientID  string `json:"client_id" dynamodbav:"client_id" validate:"required"`
-	CreatedAt int64  `json:"created_at" dynamodbav:",unixtime"`
-	UpdatedAt int64  `json:"updated_at" dynamodbav:",unixtime"`
-	DeletedAt int64  `json:"deleted_at" dynamodbav:",unixtime"`
+	CreatedAt int64  `json:"created_at" dynamodbav:"created_at"`
+	UpdatedAt int64  `json:"updated_at" dynamodbav:"updated_at"`
+	DeletedAt int64  `json:"deleted_at" dynamodbav:"deleted_at"`
 
 	HousingType HousingType `json:"housing_type" dynamodbav:"housing_type"`
 	PrivacyType PrivacyType `json:"privacy_type" dynamodbav:"privacy_type"`
@@ -60,8 +60,8 @@ type TripBase struct {
 	Mission        string     `json:"mission" dynamodbav:"mission"`
 	Price          float64    `json:"price" dynamodbav:"price"`
 	Currency       string     `json:"currency" dynamodbav:"currency"`
-	StartDate      time.Time  `json:"start_date" dynamodbav:"start_date"`
-	EndDate        time.Time  `json:"end_date" dynamodbav:"end_date"`
+	StartDate      int64      `json:"start_date" dynamodbav:"start_date"`
+	EndDate        int64      `json:"end_date" dynamodbav:"end_date"`
 }
 
 func NewTrip() Trip {
