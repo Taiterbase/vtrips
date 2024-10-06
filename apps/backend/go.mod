@@ -3,9 +3,10 @@ module github.com/Taiterbase/vtrips/apps/backend
 go 1.23.1
 
 require (
-	github.com/Taiterbase/vtrips/pkg/models v0.0.12
+	github.com/Taiterbase/vtrips/pkg/models v0.0.16
 	github.com/aws/aws-sdk-go-v2 v1.32.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.39
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.37
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.15.10
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.36.0
 	github.com/go-playground/validator v9.31.0+incompatible
@@ -14,7 +15,6 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.37 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.14 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.19 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.19 // indirect

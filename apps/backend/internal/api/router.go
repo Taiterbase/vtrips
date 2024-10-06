@@ -41,7 +41,7 @@ func setupRouters(eng *echo.Echo) {
 
 	// item operations
 	eng.POST("/v1/trips", CreateTrip)
-	eng.GET("/v1/trips/:id", GetTrip)
-	eng.PUT("/v1/trips/:id", UpdateTrip)
-	eng.DELETE("/v1/trips/:id", DeleteTrip)
+	eng.GET("/v1/trips/:trip_id", GetTrip)
+	eng.PUT("/v1/trips/:trip_id", UpdateTrip)
+	eng.DELETE("/v1/trips/:trip_id", DeleteTrip)
 }
