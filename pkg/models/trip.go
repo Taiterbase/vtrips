@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	validate "github.com/go-playground/validator/v10"
 	ulid "github.com/oklog/ulid/v2"
@@ -205,4 +206,20 @@ func (t *TripBase) SetTripType(tripType TripType) {
 // SetDeletedAt sets the deletion timestamp of the trip
 func (t *TripBase) SetDeletedAt(deletedAt int64) {
 	t.DeletedAt = deletedAt
+}
+
+func (t *TripBase) GetWriteActions() []WriteAction[Trip] {
+	return []WriteAction[Trip]{
+		{
+			Add: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
+				return nil
+			},
+			Update: func(tx *dynamodb.TransactWriteItemsInput, clientID string, oldTrip Trip, newTrip Trip) error {
+				return nil
+			},
+			Delete: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
+				return nil
+			},
+		},
+	}
 }

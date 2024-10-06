@@ -1,0 +1,15 @@
+local_resource('ddb-migration', './migrations/dynamodb/migrate.sh', labels=["bootstrap"], resource_deps=["localstack"], deps=['./migrations/dynamodb'])
+docker_build('backend-image', '.',
+    dockerfile='../../deployments/backend/Dockerfile.dev',
+    live_update=[
+        sync('./apps/backend/', '/src'),
+        run('go build -o /backend.bin ./cmd/main.go', trigger=[
+            '/src/cmd/main.go',
+            '/src/internal/**/*.go',
+        ]),  
+        run('cp /backend.bin /app/backend.bin'),
+        run('chmod 755 /app/backend.bin')
+    ]
+)
+k8s_yaml(helm('../../deployments/backend', name="backend"), allow_duplicates=True)
+k8s_resource('backend', port_forwards=["8081:8080"], labels=['services'], resource_deps=['localstack'])

@@ -5,7 +5,6 @@ import "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 type HousingType int
 
 const (
-	// 'hostel', 'hotel', 'house', 'apartment', 'dormitory', 'camping', 'other'
 	OtherHousing HousingType = iota
 	CampingHousing
 	HostelHousing
