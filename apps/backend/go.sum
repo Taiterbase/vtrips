@@ -1,5 +1,5 @@
-github.com/Taiterbase/vtrips/pkg/models v0.0.16 h1:/5vOuIvRx+z69ONWfa1E9khZ5kM3MEvidwOP032hRjU=
-github.com/Taiterbase/vtrips/pkg/models v0.0.16/go.mod h1:ar6JRf7YdNF7EqVTfiXxIatgTWLBBgJsvajYfmnCIHA=
+github.com/Taiterbase/vtrips/pkg/models v0.0.19 h1:8F1el3hqyDFWYsTf5E8lD1uOwJMYPuBXGS05HtRokz4=
+github.com/Taiterbase/vtrips/pkg/models v0.0.19/go.mod h1:gHH8LyXSlpm9wmrzUYjBpFTo0o62LVVYj3BvZGKiHk8=
 github.com/aws/aws-sdk-go-v2 v1.32.0 h1:GuHp7GvMN74PXD5C97KT5D87UhIy4bQPkflQKbfkndg=
 github.com/aws/aws-sdk-go-v2 v1.32.0/go.mod h1:2SK5n0a2karNTv5tbP1SjsX0uhttou00v/HpXKM1ZUo=
 github.com/aws/aws-sdk-go-v2/config v1.27.39 h1:FCylu78eTGzW1ynHcongXK9YHtoXD5AiiUqq3YfJYjU=

@@ -3,7 +3,7 @@ module github.com/Taiterbase/vtrips/apps/backend
 go 1.23.1
 
 require (
-	github.com/Taiterbase/vtrips/pkg/models v0.0.16
+	github.com/Taiterbase/vtrips/pkg/models v0.0.19
 	github.com/aws/aws-sdk-go-v2 v1.32.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.39
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.37

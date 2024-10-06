@@ -95,7 +95,7 @@ func GetTrip(c echo.Context) error {
 	return c.JSON(http.StatusOK, trip)
 }
 
-func getTrip(ctx context.Context, clientID, tripID string) (models.TripBase, error) {
+func getTrip(ctx context.Context, clientID, tripID string) (*models.TripBase, error) {
 	item, err := storage.Client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String("vtrips"),
 		Key: map[string]types.AttributeValue{
@@ -104,14 +104,14 @@ func getTrip(ctx context.Context, clientID, tripID string) (models.TripBase, err
 		},
 	})
 	if err != nil {
-		return models.TripBase{}, err
+		return nil, err
 	}
-	trip := models.TripBase{}
+	var trip models.TripBase
 	err = attributevalue.UnmarshalMap(item.Item, &trip)
 	if err != nil {
-		return models.TripBase{}, err
+		return nil, err
 	}
-	return trip, nil
+	return &trip, nil
 }
 
 func UpdateTrip(c echo.Context) error {
