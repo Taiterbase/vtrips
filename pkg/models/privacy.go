@@ -1,6 +1,10 @@
 package models
 
-import "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+import (
+	"encoding/json"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
 
 type PrivacyType int
 
@@ -22,15 +26,15 @@ func (p PrivacyType) Int() int {
 func (p PrivacyType) MarshalJSON() ([]byte, error) {
 	switch p {
 	case SharedPrivacy:
-		return []byte("shared"), nil
+		return json.Marshal("shared")
 	case PrivatePrivacy:
-		return []byte("private"), nil
+		return json.Marshal("private")
 	case CompletePrivacy:
-		return []byte("complete"), nil
+		return json.Marshal("complete")
 	case OtherPrivacy:
-		return []byte("other"), nil
+		return json.Marshal("other")
 	default:
-		return []byte("other"), nil
+		return json.Marshal("other")
 	}
 }
 

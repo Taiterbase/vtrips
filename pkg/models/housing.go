@@ -1,6 +1,10 @@
 package models
 
-import "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+import (
+	"encoding/json"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
 
 type HousingType int
 
@@ -25,21 +29,21 @@ func (h HousingType) Int() int {
 func (h HousingType) MarshalJSON() ([]byte, error) {
 	switch h {
 	case CampingHousing:
-		return []byte("camping"), nil
+		return json.Marshal("camping")
 	case HostelHousing:
-		return []byte("hostel"), nil
+		return json.Marshal("hostel")
 	case HotelHousing:
-		return []byte("hotel"), nil
+		return json.Marshal("hotel")
 	case DormitoryHousing:
-		return []byte("dormitory"), nil
+		return json.Marshal("dormitory")
 	case ApartmentHousing:
-		return []byte("apartment"), nil
+		return json.Marshal("apartment")
 	case HouseHousing:
-		return []byte("house"), nil
+		return json.Marshal("house")
 	case OtherHousing:
-		return []byte("other"), nil
+		return json.Marshal("other")
 	default:
-		return []byte("other"), nil
+		return json.Marshal("other")
 	}
 }
 
