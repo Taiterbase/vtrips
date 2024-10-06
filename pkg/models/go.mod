@@ -3,7 +3,6 @@ module github.com/Taiterbase/vtrips/pkg/models
 go 1.23.1
 
 require (
-	github.com/Taiterbase/vtrips/pkg/index v0.0.0-20241006012158-f576d321db07
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.36.0
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/oklog/ulid/v2 v2.1.0

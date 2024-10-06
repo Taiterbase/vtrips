@@ -1,8 +1,6 @@
 package models
 
 import (
-	"encoding/json"
-
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
@@ -18,59 +16,28 @@ const (
 	HouseHousing
 )
 
-func (h HousingType) String() string {
-	return [...]string{"camping", "hostel", "hotel", "dormitory", "apartment", "house", "other"}[h]
-}
-
-func (h HousingType) Int() int {
-	return int(h)
-}
-
-func (h HousingType) MarshalJSON() ([]byte, error) {
+func (h HousingType) MarshalDynamoDBAttributeValue() (types.AttributeValue, error) {
+	var val string
 	switch h {
 	case CampingHousing:
-		return json.Marshal("camping")
+		val = "camping"
 	case HostelHousing:
-		return json.Marshal("hostel")
+		val = "hostel"
 	case HotelHousing:
-		return json.Marshal("hotel")
+		val = "hotel"
 	case DormitoryHousing:
-		return json.Marshal("dormitory")
+		val = "dormitory"
 	case ApartmentHousing:
-		return json.Marshal("apartment")
+		val = "apartment"
 	case HouseHousing:
-		return json.Marshal("house")
+		val = "house"
 	case OtherHousing:
-		return json.Marshal("other")
+		val = "other"
 	default:
-		return json.Marshal("other")
+		val = "other"
 	}
-}
 
-func (h HousingType) UnmarshalJSON(b []byte) error {
-	switch string(b) {
-	case "camping":
-		h = CampingHousing
-	case "hostel":
-		h = HostelHousing
-	case "hotel":
-		h = HotelHousing
-	case "dormitory":
-		h = DormitoryHousing
-	case "apartment":
-		h = ApartmentHousing
-	case "house":
-		h = HouseHousing
-	case "other":
-		h = OtherHousing
-	default:
-		h = OtherHousing
-	}
-	return nil
-}
-
-func (h HousingType) MarshalDynamoDBAttributeValue() (types.AttributeValue, error) {
-	return &types.AttributeValueMemberS{Value: h.String()}, nil
+	return &types.AttributeValueMemberS{Value: val}, nil
 }
 
 func (h *HousingType) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) error {
