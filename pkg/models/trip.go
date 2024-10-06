@@ -40,9 +40,9 @@ type TripBase struct {
 	SK        string `json:"-" dynamodbav:"sk"`
 	ID        string `json:"id" dynamodbav:"id" validate:"required"`
 	ClientID  string `json:"client_id" dynamodbav:"client_id" validate:"required"`
-	CreatedAt int64  `json:"created_at" dynamodbav:"created_at,unixtime"`
-	UpdatedAt int64  `json:"updated_at" dynamodbav:"updated_at,unixtime" updateable:"true"`
-	DeletedAt int64  `json:"deleted_at" dynamodbav:"deleted_at,unixtime" updateable:"true"`
+	CreatedAt int64  `json:"created_at" dynamodbav:"created_at"`
+	UpdatedAt int64  `json:"updated_at" dynamodbav:"updated_at" updateable:"true"`
+	DeletedAt int64  `json:"deleted_at" dynamodbav:"deleted_at" updateable:"true"`
 
 	HousingType    HousingType `json:"housing_type" dynamodbav:"housing_type" updateable:"true"`
 	PrivacyType    PrivacyType `json:"privacy_type" dynamodbav:"privacy_type" updateable:"true"`
@@ -56,8 +56,8 @@ type TripBase struct {
 	Mission        string      `json:"mission" dynamodbav:"mission" updateable:"true"`
 	Price          float64     `json:"price" dynamodbav:"price" updateable:"true"`
 	Currency       string      `json:"currency" dynamodbav:"currency" updateable:"true"`
-	StartDate      int64       `json:"start_date" dynamodbav:"start_date,unixtime" updateable:"true"`
-	EndDate        int64       `json:"end_date" dynamodbav:"end_date,unixtime" updateable:"true"`
+	StartDate      int64       `json:"start_date" dynamodbav:"start_date" updateable:"true"`
+	EndDate        int64       `json:"end_date" dynamodbav:"end_date" updateable:"true"`
 }
 
 var updateFields = []string{
