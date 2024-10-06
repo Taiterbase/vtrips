@@ -77,6 +77,7 @@ func (t *TripType) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) erro
 }
 
 type Trip interface {
+	Indexer
 	GetID() string
 	GetClientID() string
 	GetCreatedAt() int64
@@ -208,8 +209,8 @@ func (t *TripBase) SetDeletedAt(deletedAt int64) {
 	t.DeletedAt = deletedAt
 }
 
-func (t *TripBase) GetWriteActions() []WriteAction[Trip] {
-	return []WriteAction[Trip]{
+func (t *TripBase) GetWriteActions() []WriteAction {
+	return []WriteAction{
 		{
 			Add: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
 				return nil
@@ -219,6 +220,22 @@ func (t *TripBase) GetWriteActions() []WriteAction[Trip] {
 			},
 			Delete: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip Trip) error {
 				return nil
+			},
+		},
+	}
+}
+
+func (t *TripBase) GetCascadeActions() []CascadeAction {
+	return []CascadeAction{
+		{
+			Add: func(trips []Trip, trip Trip) ([]*dynamodb.TransactWriteItemsInput, error) {
+				return nil, nil
+			},
+			Update: func(trips []Trip, trip Trip, updatedAttributes []string) ([]*dynamodb.TransactWriteItemsInput, error) {
+				return nil, nil
+			},
+			Delete: func(trips []Trip, trip Trip) ([]*dynamodb.TransactWriteItemsInput, error) {
+				return nil, nil
 			},
 		},
 	}
