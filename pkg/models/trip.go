@@ -42,9 +42,9 @@ type TripBase struct {
 	SK        string `json:"-" dynamodbav:"sk"`
 	ID        string `json:"id" dynamodbav:"id" validate:"required"`
 	ClientID  string `json:"client_id" dynamodbav:"client_id" validate:"required"`
-	CreatedAt int64  `json:"created_at" dynamodbav:",unixtime"`
-	UpdatedAt int64  `json:"updated_at" dynamodbav:",unixtime"`
-	DeletedAt int64  `json:"deleted_at" dynamodbav:",unixtime"`
+	CreatedAt int64  `json:"created_at" dynamodbav:"created_at,unixtime"`
+	UpdatedAt int64  `json:"updated_at" dynamodbav:"updated_at,unixtime"`
+	DeletedAt int64  `json:"deleted_at" dynamodbav:"deleted_at,unixtime"`
 
 	HousingType HousingType `json:"housing_type" dynamodbav:"housing_type"`
 	PrivacyType PrivacyType `json:"privacy_type" dynamodbav:"privacy_type"`
