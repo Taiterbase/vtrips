@@ -38,8 +38,8 @@ func CreateTrip(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	item["PK"] = &types.AttributeValueMemberS{Value: index.MakePK(clientID)}
-	item["SK"] = &types.AttributeValueMemberS{Value: index.MakeSK(trip.GetID())}
+	item["pk"] = &types.AttributeValueMemberS{Value: index.MakePK(clientID)}
+	item["sk"] = &types.AttributeValueMemberS{Value: index.MakeSK(trip.GetID())}
 	tx := &dynamodb.TransactWriteItemsInput{
 		TransactItems: []types.TransactWriteItem{
 			{
@@ -100,8 +100,8 @@ func getTrip(ctx context.Context, clientID, tripID string) (*models.TripBase, er
 	item, err := storage.Client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String("vtrips"),
 		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-			"SK": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
+			"pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
+			"sk": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
 		},
 	})
 	if err != nil {
@@ -140,11 +140,11 @@ func UpdateTrip(c echo.Context) error {
 				Update: &types.Update{
 					TableName: aws.String("vtrips"),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-						"SK": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
+						"pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
+						"sk": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
 					},
 					UpdateExpression:                    aws.String(updateExpr),
-					ConditionExpression:                 aws.String("attribute_exists(PK) AND attribute_exists(SK)"),
+					ConditionExpression:                 aws.String("attribute_exists(pk) AND attribute_exists(sk)"),
 					ExpressionAttributeNames:            attrNames,
 					ExpressionAttributeValues:           attrVals,
 					ReturnValuesOnConditionCheckFailure: types.ReturnValuesOnConditionCheckFailureAllOld,
@@ -171,32 +171,37 @@ func DeleteTrip(c echo.Context) error {
 		tripID   = c.Param("trip_id")
 	)
 
-	res, err := storage.Client.DeleteItem(c.Request().Context(), &dynamodb.DeleteItemInput{
-		TableName: aws.String("vtrips"),
-		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-			"SK": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
+	tx := &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Delete: &types.Delete{
+					TableName: aws.String("vtrips"),
+					Key: map[string]types.AttributeValue{
+						"pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
+						"sk": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
+					},
+					ConditionExpression: aws.String("attribute_exists(pk) AND attribute_exists(sk)"),
+				},
+			},
 		},
-		ReturnValues: types.ReturnValueAllOld,
-	})
+	}
+	_, err := storage.Client.TransactWriteItems(c.Request().Context(), tx)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	var trip models.TripBase
-	err = attributevalue.UnmarshalMap(res.Attributes, &trip)
-	return c.JSON(http.StatusOK, trip)
+	return c.JSON(http.StatusOK, tripID)
 }
 
 func ListTrips(c echo.Context) error {
 	var (
 		clientID  = c.QueryParam("client_id")
 		attrNames = map[string]string{
-			"#PK": "PK",
-			"#SK": "SK",
+			"#pk": "pk",
+			"#sk": "sk",
 		}
 		attrVals = map[string]types.AttributeValue{
-			":PK": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-			":SK": &types.AttributeValueMemberS{Value: index.MakeSK("")},
+			":pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
+			":sk": &types.AttributeValueMemberS{Value: index.MakeSK("")},
 		}
 		query = &dynamodb.QueryInput{
 			TableName:                 aws.String("vtrips"),
@@ -204,7 +209,7 @@ func ListTrips(c echo.Context) error {
 			ExpressionAttributeValues: attrVals,
 			Limit:                     aws.Int32(10),
 			ScanIndexForward:          aws.Bool(true), // asc
-			KeyConditionExpression:    aws.String("#PK = :PK AND begins_with(#SK, :SK)"),
+			KeyConditionExpression:    aws.String("#pk = :pk AND begins_with(#sk, :sk)"),
 		}
 		trips       []models.TripBase
 		queryParams = c.Request().URL.Query()
@@ -213,10 +218,9 @@ func ListTrips(c echo.Context) error {
 		query.Limit = aws.Int32(int32(limit))
 	}
 	if page := c.QueryParam("page"); page != "" {
-		attrVals[":SK"] = &types.AttributeValueMemberS{Value: page}
+		attrVals[":sk"] = &types.AttributeValueMemberS{Value: page}
 	}
 
-	// get the filter expression from the query params and set if it's not empty
 	filterExpr := storage.GetFilterExpression(queryParams, attrNames, attrVals)
 	if filterExpr != "" {
 		query.FilterExpression = aws.String(filterExpr)
