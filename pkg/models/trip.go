@@ -60,25 +60,6 @@ type TripBase struct {
 	EndDate        int64       `json:"end_date" dynamodbav:"end_date" updateable:"true"`
 }
 
-var updateFields = []string{
-	"updated_at",
-	"deleted_at",
-	"housing_type",
-	"privacy_type",
-	"trip_type",
-	"latitude",
-	"longtitude",
-	"status",
-	"volunteer_limit",
-	"name",
-	"description",
-	"mission",
-	"price",
-	"currency",
-	"start_date",
-	"end_date",
-}
-
 func NewTrip() Trip {
 	now := time.Now().UnixMilli()
 	return &TripBase{
