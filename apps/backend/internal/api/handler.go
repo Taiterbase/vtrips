@@ -231,7 +231,11 @@ func ListTrips(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	attributevalue.UnmarshalListOfMaps(items.Items, &trips)
-	return c.JSON(http.StatusOK, trips)
+	return c.JSON(http.StatusOK, echo.Map{
+		"trips":         trips,
+		"count":         items.Count,
+		"scanned_count": items.ScannedCount,
+	})
 }
 
 func UpdateTrips(c echo.Context) error {

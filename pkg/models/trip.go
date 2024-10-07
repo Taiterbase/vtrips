@@ -60,6 +60,7 @@ type TripBase struct {
 	EndDate        int64       `json:"end_date" dynamodbav:"end_date" updateable:"true"`
 }
 
+// NewTrip creates a new Trip struct with default values
 func NewTrip() Trip {
 	now := time.Now().UnixMilli()
 	return &TripBase{
@@ -73,6 +74,7 @@ func NewTrip() Trip {
 	}
 }
 
+// Validate validates the TripBase struct
 func (t *TripBase) Validate() error {
 	validate := validate.New()
 	return validate.Struct(t)
