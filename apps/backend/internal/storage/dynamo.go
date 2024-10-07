@@ -67,3 +67,18 @@ func GetUpdateExpression(item any, attrNames map[string]string, attrVals map[str
 	updateExpression := "SET " + strings.Join(updateParts, ", ")
 	return updateExpression, nil
 }
+
+func GetFilterExpression(queryParams map[string][]string, attrNames map[string]string, attrVals map[string]types.AttributeValue) string {
+	var filterParts []string
+	for key, values := range queryParams {
+		for i, value := range values {
+			attrName := fmt.Sprintf("#%s", key)
+			attrValue := fmt.Sprintf(":%s%d", key, i)
+			attrNames[attrName] = key
+			attrVals[attrValue] = &types.AttributeValueMemberS{Value: value}
+			filterParts = append(filterParts, fmt.Sprintf("%s = %s", attrName, attrValue))
+		}
+	}
+	filterExpression := strings.Join(filterParts, " AND ")
+	return filterExpression
+}

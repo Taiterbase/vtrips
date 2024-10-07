@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Taiterbase/vtrips/apps/backend/internal/storage"
@@ -165,11 +166,68 @@ func UpdateTrip(c echo.Context) error {
 }
 
 func DeleteTrip(c echo.Context) error {
-	return nil
+	var (
+		clientID = c.QueryParam("client_id")
+		tripID   = c.Param("trip_id")
+	)
+
+	res, err := storage.Client.DeleteItem(c.Request().Context(), &dynamodb.DeleteItemInput{
+		TableName: aws.String("vtrips"),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
+			"SK": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
+		},
+		ReturnValues: types.ReturnValueAllOld,
+	})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	var trip models.TripBase
+	err = attributevalue.UnmarshalMap(res.Attributes, &trip)
+	return c.JSON(http.StatusOK, trip)
 }
 
 func ListTrips(c echo.Context) error {
-	return nil
+	var (
+		clientID  = c.QueryParam("client_id")
+		attrNames = map[string]string{
+			"#PK": "PK",
+			"#SK": "SK",
+		}
+		attrVals = map[string]types.AttributeValue{
+			":PK": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
+			":SK": &types.AttributeValueMemberS{Value: index.MakeSK("")},
+		}
+		query = &dynamodb.QueryInput{
+			TableName:                 aws.String("vtrips"),
+			ExpressionAttributeNames:  attrNames,
+			ExpressionAttributeValues: attrVals,
+			Limit:                     aws.Int32(10),
+			ScanIndexForward:          aws.Bool(true), // asc
+			KeyConditionExpression:    aws.String("#PK = :PK AND begins_with(#SK, :SK)"),
+		}
+		trips       []models.TripBase
+		queryParams = c.Request().URL.Query()
+	)
+	if limit, err := strconv.Atoi(c.QueryParam("limit")); err == nil {
+		query.Limit = aws.Int32(int32(limit))
+	}
+	if page := c.QueryParam("page"); page != "" {
+		attrVals[":SK"] = &types.AttributeValueMemberS{Value: page}
+	}
+
+	// get the filter expression from the query params and set if it's not empty
+	filterExpr := storage.GetFilterExpression(queryParams, attrNames, attrVals)
+	if filterExpr != "" {
+		query.FilterExpression = aws.String(filterExpr)
+	}
+
+	items, err := storage.Client.Query(c.Request().Context(), query)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	attributevalue.UnmarshalListOfMaps(items.Items, &trips)
+	return c.JSON(http.StatusOK, trips)
 }
 
 func UpdateTrips(c echo.Context) error {
