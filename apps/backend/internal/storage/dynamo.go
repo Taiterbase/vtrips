@@ -71,6 +71,9 @@ func GetUpdateExpression(item any, attrNames map[string]string, attrVals map[str
 func GetFilterExpression(queryParams map[string][]string, attrNames map[string]string, attrVals map[string]types.AttributeValue) string {
 	var filterParts []string
 	for key, values := range queryParams {
+		if key == "client_id" || key == "page" || key == "limit" {
+			continue
+		}
 		for i, value := range values {
 			attrName := fmt.Sprintf("#%s", key)
 			attrValue := fmt.Sprintf(":%s%d", key, i)

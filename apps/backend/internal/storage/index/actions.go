@@ -8,13 +8,13 @@ import (
 func GetTripWriteActions() []WriteAction {
 	return []WriteAction{
 		{
-			Add: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip models.Trip) error {
+			Add: func(tx *dynamodb.TransactWriteItemsInput, trip models.Trip) error {
 				return nil
 			},
-			Update: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip models.Trip, updatedFields []string) error {
+			Update: func(tx *dynamodb.TransactWriteItemsInput, trip models.Trip, updatedFields []string) error {
 				return nil
 			},
-			Delete: func(tx *dynamodb.TransactWriteItemsInput, clientID string, trip models.Trip) error {
+			Delete: func(tx *dynamodb.TransactWriteItemsInput, trip models.Trip) error {
 				return nil
 			},
 		},
