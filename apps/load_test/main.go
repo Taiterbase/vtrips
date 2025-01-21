@@ -10,7 +10,7 @@ import (
 
 // Define the data structure for a trip request.
 type Trip struct {
-	ClientID       string `json:"client_id"`
+	OrgID          string `json:"org_id"`
 	Status         string `json:"status"`
 	VolunteerLimit int    `json:"volunteer_limit"`
 	Name           string `json:"name"`
@@ -31,7 +31,7 @@ var trips = []Trip{
 	{"load", "draft", 2, "festival coordinator", "We need help coordinating the festival, volunteers appreciated."},
 }
 
-const apiURL = "http://localhost:8080/v1/trips?client_id=load"
+const apiURL = "http://localhost:8080/v1/trips?org_id=load"
 
 // Function to send a single request
 func sendTripRequest(trip Trip, wg *sync.WaitGroup) {
@@ -39,12 +39,12 @@ func sendTripRequest(trip Trip, wg *sync.WaitGroup) {
 
 	// Convert trip data to JSON
 	jsonData := fmt.Sprintf(`{
-		"client_id": "%s",
+		"org_id": "%s",
 		"status": "%s",
 		"volunteer_limit": %d,
 		"name": "%s",
 		"description": "%s"
-	}`, trip.ClientID, trip.Status, trip.VolunteerLimit, trip.Name, trip.Description)
+	}`, trip.OrgID, trip.Status, trip.VolunteerLimit, trip.Name, trip.Description)
 
 	// Send the request
 	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer([]byte(jsonData)))
@@ -65,10 +65,10 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Set up a rate limiter to avoid overloading the API
-	limiter := time.Tick(1 * time.Millisecond)
+	limiter := time.Tick(1 * time.Second)
 
-	// Spin off 1000 requests concurrently
-	for i := 0; i < 1000; i++ {
+	// Spin off 10 requests concurrently
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 
 		// Choose a random trip (or you could cycle through them)

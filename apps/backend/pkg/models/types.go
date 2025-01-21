@@ -85,6 +85,16 @@ func (t *TripType) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) erro
 	return nil
 }
 
+type TripStatus string
+
+const (
+	TripStatusDraft    TripStatus = "draft"
+	TripStatusComplete TripStatus = "complete"
+	TripStatusListed   TripStatus = "listed"
+	TripStatusUnlisted TripStatus = "unlisted"
+	TripStatusArchived TripStatus = "archived"
+)
+
 type PrivacyType int
 
 const (

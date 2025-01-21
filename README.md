@@ -7,7 +7,7 @@
 
 ## Testing
 ```sh
-curl -X POST "http://localhost:8080/v1/trips?client_id=test" -H "Content-Type: application/json" -d '{
+curl -X POST "http://localhost:8080/v1/trips?org_id=test" -H "Content-Type: application/json" -d '{
   "status": "draft",
   "volunteer_limit": 10,
   "name": "Cleaning up Nepal",
@@ -17,18 +17,18 @@ curl -X POST "http://localhost:8080/v1/trips?client_id=test" -H "Content-Type: a
 ```
 
 ```sh
-curl -X PUT "http://localhost:8080/v1/trips/:trip_id?client_id=test" -H "Content-Type: application/json" -d '{
+curl -X PUT "http://localhost:8080/v1/trips/:trip_id?org_id=test" -H "Content-Type: application/json" -d '{
   "status": "listed",
 }'
 ```
 
 ```sh
-curl -X GET "http://localhost:8080/v1/trips/:trip_id?client_id=test" -H "Content-Type: application/json"
+curl -X GET "http://localhost:8080/v1/trips/:trip_id?org_id=test" -H "Content-Type: application/json"
 ```
 
 ```sh
-curl -X GET "http://localhost:8080/v1/trips?client_id=test" -H "Content-Type: application/json"
-curl -X GET "http://localhost:8080/v1/trips?client_id=test&status=listed" -H "Content-Type: application/json"
-curl -X GET "http://localhost:8080/v1/trips?client_id=test&status=listed&housing_type=camping" -H "Content-Type: application/json"
+curl -X GET "http://localhost:8080/v1/trips?org_id=test" -H "Content-Type: application/json"
+curl -X GET "http://localhost:8080/v1/trips?org_id=test&status=listed" -H "Content-Type: application/json"
+curl -X GET "http://localhost:8080/v1/trips?org_id=test&status=listed&housing_type=camping" -H "Content-Type: application/json"
 ```
 

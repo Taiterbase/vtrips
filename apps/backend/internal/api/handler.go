@@ -1,256 +1,155 @@
 package api
 
 import (
-	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Taiterbase/vtrips/apps/backend/internal/storage"
-	"github.com/Taiterbase/vtrips/apps/backend/internal/storage/index"
-	"github.com/Taiterbase/vtrips/pkg/models"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
+	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
+	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
-	"github.com/labstack/gommon/log"
 )
 
-func CreateTrip(c echo.Context) error {
-	var (
-		trip     = models.NewTrip()
-		clientID = c.QueryParam("client_id")
-	)
+func DatabaseDebug(c echo.Context) error {
+	iter, err := storage.Client.NewIter(&pebble.IterOptions{})
+	if err != nil {
+		return err
+	}
+	defer iter.Close()
 
-	trip.SetClientID(clientID)
-	c.Logger().Debugj(log.JSON{"trip": trip})
+	dbContents := make(map[string]interface{})
+	valid := iter.First()
+	for valid {
+		key := string(iter.Key())
+		value := iter.Value()
+		var prettyValue interface{}
+		if err := json.Unmarshal(value, &prettyValue); err != nil {
+			prettyValue = string(value)
+		}
+		dbContents[key] = prettyValue
+		valid = iter.Next()
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"database_contents": dbContents,
+	})
+}
+
+func CreateTrip(c echo.Context) error {
+	trip := models.NewTrip()
 	err := c.Bind(&trip)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, "Invalid request body")
 	}
-	c.Logger().Debugj(log.JSON{"trip": trip})
+
 	if err = trip.Validate(); err != nil {
+		c.Logger().Error(err)
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	item, err := attributevalue.MarshalMap(&trip)
+	err = storage.CreateTrip(c, trip)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	item["pk"] = &types.AttributeValueMemberS{Value: index.MakePK(trip.GetClientID())}
-	item["sk"] = &types.AttributeValueMemberS{Value: index.MakeSK(trip.GetID())}
-	tx := &dynamodb.TransactWriteItemsInput{
-		TransactItems: []types.TransactWriteItem{
-			{
-				Put: &types.Put{
-					TableName: aws.String("vtrips"),
-					Item:      item,
-				},
-			},
-		},
-	}
-
-	for _, action := range index.GetTripWriteActions() {
-		action.Add(tx, trip)
-	}
-
-	_, err = storage.Client.TransactWriteItems(c.Request().Context(), tx)
-	if err != nil {
+		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	response := make([]models.TripBase, 0)
-	for _, item := range tx.TransactItems {
-		var (
-			// assumes all the transactions are on trips
-			tripOut models.TripBase
-			err     error
-		)
-		if item.Put != nil {
-			err = attributevalue.UnmarshalMap(item.Put.Item, &tripOut)
-		} else if item.Update != nil {
-			err = attributevalue.UnmarshalMap(item.Update.Key, &tripOut)
-		} else if item.Delete != nil {
-			err = attributevalue.UnmarshalMap(item.Delete.Key, &tripOut)
-		}
-
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err.Error())
-		}
-		response = append(response, tripOut)
-	}
-
-	return c.JSON(http.StatusOK, response)
+	c.Logger().Debugf("Created trip: %v", trip)
+	return c.JSON(http.StatusOK, trip)
 }
 
 func GetTrip(c echo.Context) error {
 	var (
-		clientID = c.QueryParam("client_id")
-		tripID   = c.Param("trip_id")
+		org    = c.QueryParam("org_id")
+		tripID = c.Param("trip_id")
 	)
-	trip, err := getTrip(c.Request().Context(), clientID, tripID)
+	if tripID == "" {
+		return c.JSON(http.StatusBadRequest, models.ErrInvalidTripID)
+	}
+	if org == "" {
+		return c.JSON(http.StatusBadRequest, models.ErrInvalidOrgID)
+	}
+
+	trip, err := getTrip(c, org, tripID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, trip)
 }
 
-func getTrip(ctx context.Context, clientID, tripID string) (*models.TripBase, error) {
-	item, err := storage.Client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: aws.String("vtrips"),
-		Key: map[string]types.AttributeValue{
-			"pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-			"sk": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
-		},
-	})
+func getTrip(c echo.Context, org, tripID string) (models.Trip, error) {
+	orgs, err := storage.GetIDsFromToken(c, []byte(fmt.Sprintf("org_id:%s", org)))
 	if err != nil {
 		return nil, err
 	}
-	var trip models.TripBase
-	err = attributevalue.UnmarshalMap(item.Item, &trip)
-	if err != nil {
-		return nil, err
+	// take the intersection of the two lists
+	trips := utils.Intersection(orgs, []string{tripID})
+	c.Logger().Debugf("Intersected Trips: %v", trips)
+	if len(trips) == 0 {
+		return nil, models.ErrTripNotFound
 	}
-	return &trip, nil
+	return storage.ReadTrip(c, trips[0])
 }
 
 func UpdateTrip(c echo.Context) error {
 	var (
-		tripID    = c.Param("trip_id")
-		clientID  = c.QueryParam("client_id")
-		attrNames = map[string]string{}
-		attrVals  = map[string]types.AttributeValue{}
+		tripID = c.Param("trip_id")
+		org    = c.QueryParam("org_id")
 	)
-	trip, err := getTrip(c.Request().Context(), clientID, tripID)
+	trip, err := getTrip(c, org, tripID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	if err = c.Bind(&trip); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	trip.SetUpdatedAt(time.Now().UnixMilli())
-	updateExpr, err := storage.GetUpdateExpression(trip, attrNames, attrVals)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	tx := &dynamodb.TransactWriteItemsInput{
-		TransactItems: []types.TransactWriteItem{
-			{
-				Update: &types.Update{
-					TableName: aws.String("vtrips"),
-					Key: map[string]types.AttributeValue{
-						"pk": &types.AttributeValueMemberS{Value: index.MakePK(trip.GetClientID())},
-						"sk": &types.AttributeValueMemberS{Value: index.MakeSK(trip.GetID())},
-					},
-					UpdateExpression:                    aws.String(updateExpr),
-					ConditionExpression:                 aws.String("attribute_exists(pk) AND attribute_exists(sk)"),
-					ExpressionAttributeNames:            attrNames,
-					ExpressionAttributeValues:           attrVals,
-					ReturnValuesOnConditionCheckFailure: types.ReturnValuesOnConditionCheckFailureAllOld,
-				},
-			},
-		},
-	}
-
-	for _, action := range index.GetTripWriteActions() {
-		action.Update(tx, trip, nil)
-	}
-
-	_, err = storage.Client.TransactWriteItems(c.Request().Context(), tx)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
+	trip.SetUpdatedAt(time.Now().Unix())
+	// write/apply the update to the tokens, handling removal and addition from lists
 
 	return c.JSON(http.StatusOK, trip)
 }
 
 func DeleteTrip(c echo.Context) error {
 	var (
-		clientID = c.QueryParam("client_id")
-		tripID   = c.Param("trip_id")
+		_      = c.QueryParam("org_id")
+		tripID = c.Param("trip_id")
 	)
 
-	tx := &dynamodb.TransactWriteItemsInput{
-		TransactItems: []types.TransactWriteItem{
-			{
-				Delete: &types.Delete{
-					TableName: aws.String("vtrips"),
-					Key: map[string]types.AttributeValue{
-						"pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-						"sk": &types.AttributeValueMemberS{Value: index.MakeSK(tripID)},
-					},
-					ConditionExpression: aws.String("attribute_exists(pk) AND attribute_exists(sk)"),
-				},
-			},
-		},
-	}
-	_, err := storage.Client.TransactWriteItems(c.Request().Context(), tx)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
 	return c.JSON(http.StatusOK, tripID)
 }
 
-func ListTrips(c echo.Context) error {
-	var (
-		clientID  = c.QueryParam("client_id")
-		attrNames = map[string]string{
-			"#pk": "pk",
-			"#sk": "sk",
-		}
-		attrVals = map[string]types.AttributeValue{
-			":pk": &types.AttributeValueMemberS{Value: index.MakePK(clientID)},
-			":sk": &types.AttributeValueMemberS{Value: "trip_id$"},
-		}
-		query = &dynamodb.QueryInput{
-			TableName:                 aws.String("vtrips"),
-			ExpressionAttributeNames:  attrNames,
-			ExpressionAttributeValues: attrVals,
-			Limit:                     aws.Int32(10),
-			ScanIndexForward:          aws.Bool(false),
-			KeyConditionExpression:    aws.String("#pk = :pk AND #sk < :sk"),
-		}
-		trips       []models.TripBase
-		queryParams = c.Request().URL.Query()
-	)
-	if limit, err := strconv.Atoi(c.QueryParam("limit")); err == nil {
-		query.Limit = aws.Int32(int32(limit))
+func GetTrips(c echo.Context) error {
+	tripReq := models.NewTrip()
+	err := c.Bind(&tripReq)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "Invalid request body")
 	}
-	if page := c.QueryParam("page"); page != "" {
-		attrVals[":sk"] = &types.AttributeValueMemberS{Value: page}
+	// naive intersection implementation
+	tokens := tripReq.Tokenize()
+	tokenList := map[string][]string{}
+	for _, token := range tokens {
+		tokenIDs, err := storage.GetIDsFromToken(c, token)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		tokenList[string(token)] = tokenIDs
 	}
-
-	filterExpr := storage.GetFilterExpression(queryParams, attrNames, attrVals)
-	if filterExpr != "" {
-		query.FilterExpression = aws.String(filterExpr)
+	intersection := []string{}
+	for _, ids := range tokenList {
+		if len(intersection) == 0 {
+			intersection = ids
+			continue
+		}
+		intersection = utils.Intersection(intersection, ids)
+		if len(intersection) == 0 {
+			return c.JSON(http.StatusOK, []models.Trip{})
+		}
 	}
-
-	items, err := storage.Client.Query(c.Request().Context(), query)
+	trips, err := storage.ReadTrips(c, intersection)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	c.Logger().Debugj(log.JSON{"query": query})
-	attributevalue.UnmarshalListOfMaps(items.Items, &trips)
-	lastPage := c.QueryParam("page")
-	var nextPage string
-	err = attributevalue.Unmarshal(items.LastEvaluatedKey["sk"], &nextPage)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	return c.JSON(http.StatusOK, echo.Map{
-		"trips":         trips,
-		"count":         items.Count,
-		"scanned_count": items.ScannedCount,
-		"last_page":     lastPage,
-		"next_page":     nextPage,
-	})
-}
-
-func UpdateTrips(c echo.Context) error {
-	return nil
-}
-
-func DeleteTrips(c echo.Context) error {
-	return nil
+	return c.JSON(http.StatusOK, trips)
 }

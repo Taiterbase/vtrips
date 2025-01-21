@@ -22,6 +22,7 @@ func StartAPI() {
 	e.Debug = false
 	e.Logger.SetLevel(log.DEBUG)
 	e.Debug = true
+	e.HideBanner = true
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "${time_rfc3339} ${status} ${method} ${uri} ${latency_human}\n",
 	}))
@@ -33,15 +34,13 @@ func StartAPI() {
 }
 
 func setupRouters(eng *echo.Echo) {
-	eng.GET("/v1/trips", ListTrips)
-
-	// bulk operations
-	eng.PUT("/v1/trips", UpdateTrips)
-	eng.DELETE("/v1/trips", DeleteTrips)
+	eng.GET("/v1/trips", GetTrips)
 
 	// item operations
 	eng.POST("/v1/trips", CreateTrip)
 	eng.GET("/v1/trips/:trip_id", GetTrip)
 	eng.PUT("/v1/trips/:trip_id", UpdateTrip)
 	eng.DELETE("/v1/trips/:trip_id", DeleteTrip)
+
+	eng.GET("/debug", DatabaseDebug)
 }
