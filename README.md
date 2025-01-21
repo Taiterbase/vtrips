@@ -1,9 +1,9 @@
 # vtrips
 
 ## Usage
-`ctlptl delete cluster minikube`
-`ctlptl create cluster minikube --registry=ctlptl-registry --minikube-start-flags="--cpus=2" --minikube-start-flags="--memory=4gb"`
-`tilt up`
+`ctlptl delete cluster minikube`  
+`ctlptl create cluster minikube --registry=ctlptl-registry --minikube-start-flags="--cpus=2" --minikube-start-flags="--memory=4gb"`  
+`tilt up`  
 
 ## Testing
 ```sh
