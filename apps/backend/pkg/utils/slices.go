@@ -25,3 +25,12 @@ func Contains(slice []string, item string) bool {
 	}
 	return false
 }
+
+func Remove(slice []string, target string) []string {
+	for i, v := range slice {
+		if v == target {
+			return append(slice[:i], slice[i+1:]...)
+		}
+	}
+	return slice
+}
