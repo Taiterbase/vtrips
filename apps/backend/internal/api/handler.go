@@ -56,7 +56,6 @@ func CreateTrip(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	c.Logger().Debugf("Created trip: %v", trip)
 	return c.JSON(http.StatusOK, trip)
 }
 
@@ -86,7 +85,6 @@ func getTrip(c echo.Context, org, tripID string) (models.Trip, error) {
 	}
 	// take the intersection of the two lists
 	trips := utils.Intersection(orgs, []string{tripID})
-	c.Logger().Debugf("Intersected Trips: %v", trips)
 	if len(trips) == 0 {
 		return nil, models.ErrTripNotFound
 	}
@@ -121,13 +119,19 @@ func DeleteTrip(c echo.Context) error {
 }
 
 func GetTrips(c echo.Context) error {
-	tripReq := models.NewTrip()
-	err := c.Bind(&tripReq)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "Invalid request body")
+	params := c.QueryParams()
+	tokens := [][]byte{}
+	for key, values := range params {
+		if len(values) == 0 {
+			continue
+		}
+		for _, value := range values {
+			// if there are multiple values, this implies an OR condition, which means a set union and not a set intersection
+			tokens = append(tokens, []byte(fmt.Sprintf("%s:%s", key, value)))
+		}
 	}
-	// naive intersection implementation
-	tokens := tripReq.Tokenize()
+
+	// naive set intersection implementation
 	tokenList := map[string][]string{}
 	for _, token := range tokens {
 		tokenIDs, err := storage.GetIDsFromToken(c, token)

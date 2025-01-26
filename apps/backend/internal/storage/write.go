@@ -8,6 +8,7 @@ import (
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
 	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
+	"github.com/labstack/gommon/log"
 )
 
 // writeTokens writes the trip to the inverted index for each of its fields
@@ -17,9 +18,8 @@ func writeTokens(c echo.Context, batch *pebble.Batch, trip models.Trip) (err err
 		endTime := time.Now()
 		duration := endTime.Sub(startTime)
 		if err != nil {
-			c.Logger().Debugf("writeTokens: %v", err)
+			c.Logger().Debugj(log.JSON{"WriteTokens": duration, "error": err.Error()})
 		}
-		c.Logger().Debugf("writeTokens: %v", duration)
 	}(err)
 
 	tripID := trip.GetID()
@@ -100,9 +100,8 @@ func DeleteTrip(c echo.Context, trip models.Trip) (err error) {
 		endTime := time.Now()
 		duration := endTime.Sub(startTime)
 		if err != nil {
-			c.Logger().Debugf("DeleteTrip: %v", err)
+			c.Logger().Debugj(log.JSON{"delete_trip": duration, "error": err.Error()})
 		}
-		c.Logger().Debugf("DeleteTrip: %v", duration)
 	}()
 
 	for _, tokenKey := range existingTokens {
@@ -167,9 +166,8 @@ func UpdateTrip(c echo.Context, trip models.Trip) (err error) {
 		endTime := time.Now()
 		duration := endTime.Sub(startTime)
 		if err != nil {
-			c.Logger().Debugf("UpdateTrip: %v", err)
+			c.Logger().Debugj(log.JSON{"update_trip": duration, "error": err.Error()})
 		}
-		c.Logger().Debugf("UpdateTrip: %v", duration)
 	}()
 
 	// naive update
