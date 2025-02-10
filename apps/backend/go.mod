@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/labstack/echo v3.3.10+incompatible
+	github.com/labstack/gommon v0.4.2
 	github.com/oklog/ulid/v2 v2.1.0
 )
 
@@ -32,7 +33,6 @@ require (
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

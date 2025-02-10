@@ -11,6 +11,7 @@ import (
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
 	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
+	"github.com/labstack/gommon/log"
 )
 
 func DatabaseDebug(c echo.Context) error {
@@ -120,25 +121,27 @@ func DeleteTrip(c echo.Context) error {
 
 func GetTrips(c echo.Context) error {
 	params := c.QueryParams()
-	tokens := [][]byte{}
+	tokens := []string{}
 	for key, values := range params {
 		if len(values) == 0 {
 			continue
 		}
 		for _, value := range values {
-			// if there are multiple values, this implies an OR condition, which means a set union and not a set intersection
-			tokens = append(tokens, []byte(fmt.Sprintf("%s:%s", key, value)))
+			// todo(t8): if there are multiple values, this implies an OR condition, which means a set union and not a set intersection
+			tokens = append(tokens, fmt.Sprintf("%s:%s", key, value))
 		}
 	}
-
+	c.Logger().Debugj(log.JSON{"tokens": tokens})
 	// naive set intersection implementation
 	tokenList := map[string][]string{}
 	for _, token := range tokens {
+		token := []byte(token)
 		tokenIDs, err := storage.GetIDsFromToken(c, token)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
 		tokenList[string(token)] = tokenIDs
+		c.Logger().Debugj(log.JSON{"token": string(token), "tokenIDs": tokenIDs})
 	}
 	intersection := []string{}
 	for _, ids := range tokenList {
@@ -147,6 +150,7 @@ func GetTrips(c echo.Context) error {
 			continue
 		}
 		intersection = utils.Intersection(intersection, ids)
+		c.Logger().Debugj(log.JSON{"intersection": intersection})
 		if len(intersection) == 0 {
 			return c.JSON(http.StatusOK, []models.Trip{})
 		}
@@ -155,5 +159,6 @@ func GetTrips(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+	c.Logger().Debugj(log.JSON{"trips": trips})
 	return c.JSON(http.StatusOK, trips)
 }

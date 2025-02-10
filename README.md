@@ -1,9 +1,12 @@
 # vtrips
 
 ## Usage
-`ctlptl delete cluster minikube`  
-`ctlptl create cluster minikube --registry=ctlptl-registry --minikube-start-flags="--cpus=2" --minikube-start-flags="--memory=4gb"`  
-`tilt up`  
+Make sure Docker Desktop is running.
+```sh
+ctlptl delete cluster minikube
+ctlptl create cluster minikube --registry=ctlptl-registry --minikube-start-flags="--cpus=2" --minikube-start-flags="--memory=4gb"
+tilt up
+```
 
 ## Testing
 ```sh
@@ -23,12 +26,11 @@ curl -X PUT "http://localhost:8080/v1/trips/:trip_id?org_id=test" -H "Content-Ty
 ```
 
 ```sh
-curl -X GET "http://localhost:8080/v1/trips/:trip_id?org_id=test" -H "Content-Type: application/json"
+curl -X GET "http://localhost:8080/v1/trips/:trip_id?org_id=test"
 ```
 
 ```sh
-curl -X GET "http://localhost:8080/v1/trips?org_id=test" -H "Content-Type: application/json"
-curl -X GET "http://localhost:8080/v1/trips?org_id=test&status=listed" -H "Content-Type: application/json"
-curl -X GET "http://localhost:8080/v1/trips?org_id=test&status=listed&housing_type=camping" -H "Content-Type: application/json"
+curl -X GET "http://localhost:8080/v1/trips?org_id=test"
+curl -X GET "http://localhost:8080/v1/trips?org_id=test&status=listed"
+curl -X GET "http://localhost:8080/v1/trips?org_id=test&status=listed&housing_type=camping"
 ```
-

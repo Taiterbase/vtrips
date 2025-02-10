@@ -15,6 +15,19 @@ const (
 	InternationalTrip
 )
 
+func (t TripType) String() string {
+	switch t {
+	case LocalTrip:
+		return "local"
+	case DomesticTrip:
+		return "domestic"
+	case InternationalTrip:
+		return "international"
+	default:
+		return "other"
+	}
+}
+
 func (t TripType) MarshalJSON() ([]byte, error) {
 	var val string
 	switch t {
@@ -104,6 +117,19 @@ const (
 	CompletePrivacy
 )
 
+func (p PrivacyType) String() string {
+	switch p {
+	case SharedPrivacy:
+		return "shared"
+	case PrivatePrivacy:
+		return "private"
+	case CompletePrivacy:
+		return "complete"
+	default:
+		return "other"
+	}
+}
+
 func (p PrivacyType) MarshalJSON() ([]byte, error) {
 	var val string
 	switch p {
@@ -189,6 +215,25 @@ const (
 	ApartmentHousing
 	HouseHousing
 )
+
+func (h HousingType) String() string {
+	switch h {
+	case CampingHousing:
+		return "camping"
+	case HostelHousing:
+		return "hostel"
+	case HotelHousing:
+		return "hotel"
+	case DormitoryHousing:
+		return "dormitory"
+	case ApartmentHousing:
+		return "apartment"
+	case HouseHousing:
+		return "house"
+	default:
+		return "other"
+	}
+}
 
 func (h HousingType) MarshalJSON() ([]byte, error) {
 	var val string

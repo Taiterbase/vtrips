@@ -158,9 +158,12 @@ func (t *TripBase) Tokenize() [][]byte {
 			token := utils.MakeKey(field.Tag.Get("json"), fmt.Sprintf("%v", value))
 			tokens = append(tokens, token)
 		case "geoposition":
-			// figure this out
+			// todo(t8): figure this out
 		case "equality":
 			value := v.Field(i).Interface()
+			if value == nil || value == "" {
+				continue
+			}
 			token := utils.MakeKey(field.Tag.Get("json"), fmt.Sprintf("%v", value))
 			tokens = append(tokens, token)
 		}
