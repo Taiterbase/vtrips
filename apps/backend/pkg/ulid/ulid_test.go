@@ -698,6 +698,83 @@ func TestULID_Bytes(t *testing.T) {
 	}
 }
 
+func TestULIDMonotonicityWithOverflow(t *testing.T) {
+	entropy := ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
+	now := time.Now()
+	var ids []ulid.ULID
+	for i := 0; i < 100; i++ {
+		id, err := ulid.New(ulid.Timestamp(now), entropy)
+		if err != nil {
+			t.Fatalf("Failed to generate ULID: %v", err)
+		}
+		ids = append(ids, id)
+	}
+
+	for i := 1; i < len(ids); i++ {
+		if ids[i].Compare(ids[i-1]) <= 0 {
+			t.Errorf("ULIDs not monotonically increasing at index %d: %s <= %s",
+				i, ids[i].String(), ids[i-1].String())
+		}
+	}
+
+	maxEntropy := make([]byte, 10)
+	for i := range maxEntropy {
+		maxEntropy[i] = 0xFF
+	}
+
+	entropyNearMax := ulid.Monotonic(bytes.NewReader(maxEntropy), 0)
+
+	// Generate ULIDs until we expect overflow
+	var overflowIds []ulid.ULID
+	var lastID ulid.ULID
+	var overflowErr error
+
+	for i := 0; i < 10; i++ {
+		id, err := ulid.New(ulid.Timestamp(now), entropyNearMax)
+		if err != nil {
+			overflowErr = err
+			break
+		}
+		overflowIds = append(overflowIds, id)
+		lastID = id
+	}
+
+	// verify overflow behavior
+	if overflowErr != ulid.ErrMonotonicOverflow {
+		t.Errorf("Expected ErrMonotonicOverflow, got: %v", overflowErr)
+	}
+
+	// verify monotonicity up to overflow
+	for i := 1; i < len(overflowIds); i++ {
+		if overflowIds[i].Compare(overflowIds[i-1]) <= 0 {
+			t.Errorf("ULIDs not monotonically increasing near overflow at index %d: %s <= %s",
+				i, overflowIds[i].String(), overflowIds[i-1].String())
+		}
+	}
+
+	// verify that timestamp increment resets entropy and allows generation to continue
+	nextTimestamp := ulid.Timestamp(now.Add(time.Millisecond))
+	newID, err := ulid.New(nextTimestamp, entropyNearMax)
+	if err != nil {
+		t.Fatalf("Failed to generate ULID after timestamp increment: %v", err)
+	}
+
+	// Verify new ID is greater than last pre-overflow ID
+	if newID.Compare(lastID) <= 0 {
+		t.Errorf("ULID after timestamp increment not greater than last pre-overflow ID: %s <= %s",
+			newID.String(), lastID.String())
+	}
+
+	// verify entropy portion was reset
+	entropyBytes := newID[6:] // Extract entropy portion
+	for _, b := range entropyBytes[:len(entropyBytes)-1] {
+		if b != 0 {
+			t.Error("Entropy not properly reset after timestamp increment")
+			break
+		}
+	}
+}
+
 func BenchmarkNew(b *testing.B) {
 	benchmarkMakeULID(b, func(timestamp uint64, entropy io.Reader) {
 		_, _ = ulid.New(timestamp, entropy)
