@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/Taiterbase/vtrips/apps/backend/pkg/ulid"
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
 	validate "github.com/go-playground/validator/v10"
-	ulid "github.com/oklog/ulid/v2"
 )
 
 var (
@@ -158,7 +158,7 @@ func (t *TripBase) Tokenize() [][]byte {
 			token := utils.MakeKey(field.Tag.Get("json"), fmt.Sprintf("%v", value))
 			tokens = append(tokens, token)
 		case "geoposition":
-			// todo(t8): figure this out
+		// todo(t8): figure this out
 		case "equality":
 			value := v.Field(i).Interface()
 			if value == nil || value == "" {

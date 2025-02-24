@@ -21,4 +21,4 @@ docker_build(
     ]
 )
 k8s_yaml(helm('../../deployments/backend', name="backend"), allow_duplicates=True)
-k8s_resource('backend', port_forwards=["8080:8080"], labels=['services'], resource_deps=['build-backend', 'localstack'])
+k8s_resource('backend', port_forwards=["8080:8080"], labels=['services'], resource_deps=['build-backend'])

@@ -1,9 +1,11 @@
-package utils
+package utils_test
 
 import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
 )
 
 func BenchmarkSlicesTest(t *testing.B) {
@@ -21,7 +23,7 @@ func BenchmarkSlicesTest(t *testing.B) {
 				b[i] = rnd.Intn(10000000)
 			}
 			t.ResetTimer()
-			Intersection(a, b)
+			utils.Intersection(a, b)
 		}
 	})
 	t.Run("intersection_1000000", func(t *testing.B) {
@@ -36,7 +38,7 @@ func BenchmarkSlicesTest(t *testing.B) {
 				b[i] = rnd.Intn(10000000)
 			}
 			t.ResetTimer()
-			Intersection(a, b)
+			utils.Intersection(a, b)
 		}
 	})
 	t.Run("intersection_100000", func(t *testing.B) {
@@ -51,7 +53,7 @@ func BenchmarkSlicesTest(t *testing.B) {
 				b[i] = rnd.Intn(10000000)
 			}
 			t.ResetTimer()
-			Intersection(a, b)
+			utils.Intersection(a, b)
 		}
 	})
 }
