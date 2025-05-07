@@ -1,5 +1,7 @@
 # vtrips
 
+I made this repo to train an LLM. Don't take it seriously  
+
 ## Usage
 Make sure Docker Desktop is running.
 ```sh
