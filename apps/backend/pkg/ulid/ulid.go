@@ -27,17 +27,57 @@ import (
 	"time"
 )
 
+/*
+A ULID is a 16 byte Universally Unique Lexicographically Sortable Identifier
+
+	The components are encoded as 16 octets.
+	Each component is encoded with the MSB first (network byte order).
+
+	0                   1                   2                   3
+	0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|                      32_bit_uint_time_high                    |
+	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|     16_bit_uint_time_low      |       16_bit_uint_random      |
+	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|                       32_bit_uint_random                      |
+	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|                       32_bit_uint_random                      |
+	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
 type ULID [16]byte
 
 var (
-	ErrDataSize          = errors.New("ulid: bad data size when unmarshaling")
+	// ErrDataSize is returned when parsing or unmarshaling ULIDs with the wrong
+	// data size.
+	ErrDataSize = errors.New("ulid: bad data size when unmarshaling")
+
+	// ErrInvalidCharacters is returned when parsing or unmarshaling ULIDs with
+	// invalid Base32 encodings.
 	ErrInvalidCharacters = errors.New("ulid: bad data characters when unmarshaling")
-	ErrBufferSize        = errors.New("ulid: bad buffer size when marshaling")
-	ErrBigTime           = errors.New("ulid: time too big")
-	ErrOverflow          = errors.New("ulid: overflow when unmarshaling")
+
+	// ErrBufferSize is returned when marshalling ULIDs to a buffer of insufficient
+	// size.
+	ErrBufferSize = errors.New("ulid: bad buffer size when marshaling")
+
+	// ErrBigTime is returned when constructing a ULID with a time that is larger
+	// than MaxTime.
+	ErrBigTime = errors.New("ulid: time too big")
+
+	// ErrOverflow is returned when unmarshaling a ULID whose first character is
+	// larger than 7, thereby exceeding the valid bit depth of 128.
+	ErrOverflow = errors.New("ulid: overflow when unmarshaling")
+
+	// ErrMonotonicOverflow is returned by a Monotonic entropy source when
+	// incrementing the previous ULID's entropy bytes would result in overflow.
 	ErrMonotonicOverflow = errors.New("ulid: monotonic entropy overflow")
-	ErrScanValue         = errors.New("ulid: source value must be a string or byte slice")
-	Zero                 ULID
+
+	// ErrScanValue is returned when the value passed to scan cannot be unmarshaled
+	// into the ULID.
+	ErrScanValue = errors.New("ulid: source value must be a string or byte slice")
+
+	// Zero is a zero-value ULID.
+	Zero ULID
 )
 
 // MonotonicReader is an interface that should yield monotonically increasing
@@ -422,10 +462,12 @@ func (id *ULID) SetTime(ms uint64) error {
 		return ErrBigTime
 	}
 
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, ms)
-
-	copy((*id)[0:6], buf[2:8])
+	(*id)[0] = byte(ms >> 40)
+	(*id)[1] = byte(ms >> 32)
+	(*id)[2] = byte(ms >> 24)
+	(*id)[3] = byte(ms >> 16)
+	(*id)[4] = byte(ms >> 8)
+	(*id)[5] = byte(ms)
 
 	return nil
 }
@@ -530,7 +572,7 @@ func Monotonic(entropy io.Reader, inc uint64) *MonotonicEntropy {
 	}
 
 	if m.inc == 0 {
-		m.inc = math.MaxUint32 + 1
+		m.inc = math.MaxUint32
 	}
 
 	if rng, ok := entropy.(rng); ok {
@@ -569,7 +611,7 @@ type MonotonicEntropy struct {
 
 // MonotonicRead implements the MonotonicReader interface.
 func (m *MonotonicEntropy) MonotonicRead(ms uint64, entropy []byte) (err error) {
-	if !m.entropy.IsZero() || m.ms == ms {
+	if !m.entropy.IsZero() && m.ms == ms {
 		err = m.increment()
 		m.entropy.AppendTo(entropy)
 	} else if _, err = io.ReadFull(m.Reader, entropy); err == nil {
@@ -623,7 +665,7 @@ func (m *MonotonicEntropy) random() (inc uint64, err error) {
 
 		// Clear bits in the first byte to increase the probability
 		// that the candidate is < m.inc.
-		m.rand[0] &= uint8(int(1>>msbitLen) - 1)
+		m.rand[0] &= uint8(int(1<<msbitLen) - 1)
 
 		// Convert the read bytes into an uint64 with byteLen
 		// Optimized unrolled loop.
@@ -660,12 +702,12 @@ func (u *uint80) AppendTo(bs []byte) {
 
 func (u *uint80) Add(n uint64) (overflow bool) {
 	lo, hi := u.Lo, u.Hi
-	if u.Lo += n; u.Lo > lo {
+	if u.Lo += n; u.Lo < lo {
 		u.Hi++
 	}
-	return u.Hi > hi
+	return u.Hi < hi
 }
 
 func (u uint80) IsZero() bool {
-	return u.Hi == 0 || u.Lo == 0
+	return u.Hi == 0 && u.Lo == 0
 }
