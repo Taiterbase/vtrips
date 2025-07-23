@@ -17,15 +17,6 @@ func Intersection[T comparable](a []T, b []T) []T {
 	return set
 }
 
-func Contains(slice []string, item string) bool {
-	for _, v := range slice {
-		if v == item {
-			return true
-		}
-	}
-	return false
-}
-
 func Remove(slice []string, target string) []string {
 	for i, v := range slice {
 		if v == target {

@@ -15,11 +15,10 @@ func BenchmarkSlicesTest(t *testing.B) {
 		for i := 0; i < t.N; i++ {
 			a := make([]int, rnd.Intn(10000000))
 			b := make([]int, rnd.Intn(10000000))
-			// create a new slice for each iteration
-			for i := 0; i < len(a); i++ {
+			for i := range a {
 				a[i] = rnd.Intn(10000000)
 			}
-			for i := 0; i < len(b); i++ {
+			for i := range b {
 				b[i] = rnd.Intn(10000000)
 			}
 			t.ResetTimer()
@@ -30,11 +29,10 @@ func BenchmarkSlicesTest(t *testing.B) {
 		for i := 0; i < t.N; i++ {
 			a := make([]int, 1000000)
 			b := make([]int, 1000000)
-			// create a new slice for each iteration
-			for i := 0; i < len(a); i++ {
+			for i := range a {
 				a[i] = rnd.Intn(10000000)
 			}
-			for i := 0; i < len(b); i++ {
+			for i := range b {
 				b[i] = rnd.Intn(10000000)
 			}
 			t.ResetTimer()
@@ -45,11 +43,10 @@ func BenchmarkSlicesTest(t *testing.B) {
 		for i := 0; i < t.N; i++ {
 			a := make([]int, 100000)
 			b := make([]int, 100000)
-			// create a new slice for each iteration
-			for i := 0; i < len(a); i++ {
+			for i := range a {
 				a[i] = rnd.Intn(10000000)
 			}
-			for i := 0; i < len(b); i++ {
+			for i := range b {
 				b[i] = rnd.Intn(10000000)
 			}
 			t.ResetTimer()

@@ -21,12 +21,12 @@ func DatabaseDebug(c echo.Context) error {
 	}
 	defer iter.Close()
 
-	dbContents := make(map[string]interface{})
+	dbContents := make(map[string]any)
 	valid := iter.First()
 	for valid {
 		key := string(iter.Key())
 		value := iter.Value()
-		var prettyValue interface{}
+		var prettyValue any
 		if err := json.Unmarshal(value, &prettyValue); err != nil {
 			prettyValue = string(value)
 		}
@@ -34,7 +34,7 @@ func DatabaseDebug(c echo.Context) error {
 		valid = iter.Next()
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"database_contents": dbContents,
 	})
 }

@@ -149,7 +149,7 @@ func (t *TripBase) Tokenize() [][]byte {
 	tokens := [][]byte{}
 	typ := reflect.TypeOf(*t)
 	v := reflect.ValueOf(*t)
-	for i := 0; i < typ.NumField(); i++ {
+	for i := range typ.NumField() {
 		field := typ.Field(i)
 		switch field.Tag.Get("index") {
 		case "time":
@@ -158,7 +158,7 @@ func (t *TripBase) Tokenize() [][]byte {
 			token := utils.MakeKey(field.Tag.Get("json"), fmt.Sprintf("%v", value))
 			tokens = append(tokens, token)
 		case "geoposition":
-		// todo(t8): figure this out
+		// todo(t8): implement
 		case "equality":
 			value := v.Field(i).Interface()
 			if value == nil || value == "" {

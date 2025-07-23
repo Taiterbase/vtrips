@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"slices"
 	"time"
 
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
@@ -37,7 +38,7 @@ func writeTokens(c echo.Context, batch *pebble.Batch, trip models.Trip) (err err
 			}
 		}
 
-		if !utils.Contains(existingIDs, tripID) {
+		if !slices.Contains(existingIDs, tripID) {
 			existingIDs = append(existingIDs, tripID)
 		}
 
