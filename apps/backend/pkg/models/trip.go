@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ErrInvalidTripID = fmt.Errorf("TripID is required as a string")
-	ErrInvalidOrgID  = fmt.Errorf("OrgID is required as a string")
-	ErrTripNotFound  = fmt.Errorf("Trip not found")
-	ErrOrgNotFound   = fmt.Errorf("OrgID not found")
+	ErrInvalidPayload = fmt.Errorf("Request payload invalid")
+	ErrInvalidTripID  = fmt.Errorf("TripID is required as a string")
+	ErrInvalidOrgID   = fmt.Errorf("OrgID is required as a string")
+	ErrTripNotFound   = fmt.Errorf("Trip not found")
+	ErrOrgNotFound    = fmt.Errorf("OrgID not found")
 )
 
 type Trip interface {

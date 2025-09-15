@@ -14,16 +14,16 @@ spec:
         app: frontend
     spec:
       containers:
-      - name: frontend
-        image: frontend-image
-        ports:
-        - containerPort: 8080
-        env:
-          - name: HTTP_PORT
-            value: "8080"
-          - name: HTTP_HOST
-            value: "0.0.0.0"
-          - name: APP_NAME
-            value: frontend
-          - name: LOG_LEVEL
-            value: DEBUG
+        - name: frontend
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: HTTP_PORT
+              value: "8080"
+            - name: HTTP_HOST
+              value: "0.0.0.0"
+            - name: APP_NAME
+              value: frontend
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | default "DEBUG" | quote }}

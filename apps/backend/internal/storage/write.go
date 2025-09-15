@@ -3,8 +3,8 @@ package storage
 import (
 	"encoding/json"
 	"slices"
-	"time"
 
+	"github.com/RoaringBitmap/roaring/roaring64"
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
 	"github.com/cockroachdb/pebble"
@@ -12,196 +12,228 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-// writeTokens writes the trip to the inverted index for each of its fields
-func writeTokens(c echo.Context, batch *pebble.Batch, trip models.Trip) (err error) {
-	startTime := time.Now()
-	defer func(err error) {
-		endTime := time.Now()
-		duration := endTime.Sub(startTime)
-		if err != nil {
-			c.Logger().Debugj(log.JSON{"WriteTokens": duration, "error": err.Error()})
-		}
-	}(err)
+func decode(b []byte) (*roaring64.Bitmap, error) {
+	rb := roaring64.New()
+	if len(b) == 0 {
+		return rb, nil
+	}
+	if err := rb.UnmarshalBinary(b); err != nil {
+		return nil, err
+	}
+	return rb, nil
+}
 
-	tripID := trip.GetID()
+func encode(rb *roaring64.Bitmap) ([]byte, error) {
+	rb.RunOptimize()
+	return rb.MarshalBinary()
+}
+
+func writeTokens(c echo.Context, batch *pebble.Batch, trip models.Trip, numericID uint64) (err error) {
+	defer func() {
+		if err != nil {
+			c.Logger().Errorj(log.JSON{"err": err})
+		}
+	}()
+
 	for _, key := range trip.Tokenize() {
-		existingData, closer, err := batch.Get(key)
+		existing, closer, err := batch.Get(key)
 		if err != nil && err != pebble.ErrNotFound {
 			return err
 		}
-		var existingIDs []string
-		if err == nil {
-			defer closer.Close()
-			err = json.Unmarshal(existingData, &existingIDs)
-			if err != nil {
+
+		var vCopy []byte
+		if existing != nil {
+			vCopy = slices.Clone(existing)
+		}
+		if closer != nil {
+			closer.Close()
+		}
+
+		rb, err := decode(vCopy)
+		if err != nil {
+			return err
+		}
+
+		if !rb.Contains(numericID) {
+			rb.Add(numericID)
+		}
+
+		blob, err := encode(rb)
+		if err != nil {
+			return err
+		}
+
+		if err = batch.Set(key, blob, pebble.Sync); err != nil {
+			return err
+		}
+
+		if closer != nil {
+			if err := closer.Close(); err != nil {
 				return err
 			}
-		}
-
-		if !slices.Contains(existingIDs, tripID) {
-			existingIDs = append(existingIDs, tripID)
-		}
-
-		updatedData, err := json.Marshal(existingIDs)
-		if err != nil {
-			return err
-		}
-
-		err = batch.Set(key, updatedData, pebble.Sync)
-		if err != nil {
-			return err
 		}
 	}
 	return nil
 }
 
-// CreateTrip creates a new trip in the database and writes to an inverted index for each of its fields
 func CreateTrip(c echo.Context, trip models.Trip) error {
+	numID, err := GetOrAllocate(Client, trip.GetID())
+	if err != nil {
+		return err
+	}
 	batch := Client.NewIndexedBatch()
-	key := utils.MakeKey("trip_id", trip.GetID())
-	tripBytes, err := json.Marshal(trip)
+	defer batch.Close()
+
+	keyTrip := utils.MakeKey("trip_id", trip.GetID())
+	j, err := json.Marshal(trip)
 	if err != nil {
 		return err
 	}
-	err = batch.Set(key, tripBytes, pebble.Sync)
-	if err != nil {
+	if err = batch.Set(keyTrip, j, pebble.Sync); err != nil {
 		return err
 	}
-	err = writeTokens(c, batch, trip)
-	if err != nil {
+
+	if err = writeTokens(c, batch, trip, numID); err != nil {
 		return err
 	}
 	return batch.Commit(pebble.Sync)
 }
 
-// DeleteTrip deletes a trip from the database and removes it from the inverted index
-func DeleteTrip(c echo.Context, trip models.Trip) (err error) {
+// DeleteTrip removes the trip object and its posting-list entries.
+func DeleteTrip(c echo.Context, trip models.Trip) error {
 	batch := Client.NewIndexedBatch()
-	tripID := trip.GetID()
-	key := utils.MakeKey("trip_id", tripID)
+	defer batch.Close()
 
-	var existingTrip models.Trip
-	tripBytes, closer, err := batch.Get(key)
+	ulid := trip.GetID()
+
+	numID, ok, err := Lookup(Client, ulid)
+	if err != nil || !ok {
+		return err // not found = nothing to delete
+	}
+
+	keyTrip := utils.MakeKey("trip_id", ulid)
+	oldBytes, closer, err := batch.Get(keyTrip)
+	if err == pebble.ErrNotFound {
+		return nil
+	}
 	if err != nil {
-		if err == pebble.ErrNotFound {
-			return nil
-		}
 		return err
 	}
 	defer closer.Close()
 
-	err = json.Unmarshal(tripBytes, &existingTrip)
-	if err != nil {
+	var oldTrip models.TripBase
+	if err = json.Unmarshal(oldBytes, &oldTrip); err != nil {
 		return err
 	}
 
-	existingTokens := existingTrip.Tokenize()
-	startTime := time.Now()
-	defer func() {
-		endTime := time.Now()
-		duration := endTime.Sub(startTime)
+	for _, tk := range oldTrip.Tokenize() {
+		data, closer, err := batch.Get(tk)
 		if err != nil {
-			c.Logger().Debugj(log.JSON{"delete_trip": duration, "error": err.Error()})
+			return err
 		}
-	}()
 
-	for _, tokenKey := range existingTokens {
-		existingData, closer, err := batch.Get(tokenKey)
+		rb, err := decode(data)
 		if err != nil {
-			if err != pebble.ErrNotFound {
+			return err
+		}
+		if rb.Remove(numID); rb.IsEmpty() {
+			if err = batch.Delete(tk, nil); err != nil {
 				return err
+			}
+			if closer != nil {
+				if err := closer.Close(); err != nil {
+					return err
+				}
 			}
 			continue
 		}
-		defer closer.Close()
-
-		var existingIDs []string
-		err = json.Unmarshal(existingData, &existingIDs)
-		if err != nil {
+		blob, _ := encode(rb)
+		if err = batch.Set(tk, blob, pebble.Sync); err != nil {
 			return err
 		}
 
-		existingIDs = utils.Remove(existingIDs, tripID)
-		if len(existingIDs) == 0 {
-			err = batch.Delete(tokenKey, pebble.Sync)
-		} else {
-			updatedData, err := json.Marshal(existingIDs)
-			if err != nil {
+		if closer != nil {
+			if err := closer.Close(); err != nil {
 				return err
 			}
-			err = batch.Set(tokenKey, updatedData, pebble.Sync)
-		}
-		if err != nil {
-			return err
 		}
 	}
 
-	err = batch.Delete(key, pebble.Sync)
-	if err != nil {
+	if err = batch.Delete(keyTrip, nil); err != nil {
 		return err
 	}
 	return batch.Commit(pebble.Sync)
 }
 
-// UpdateTrip updates a trip in the database and updates the inverted index for each of its fields
-func UpdateTrip(c echo.Context, trip models.Trip) (err error) {
+// UpdateTrip overwrites the trip JSON and refreshes all bitmap tokens.
+// Simplest strategy: delete old postings then re-add new ones.
+func UpdateTrip(c echo.Context, trip models.Trip) error {
 	batch := Client.NewIndexedBatch()
-	tripID := trip.GetID()
-	key := utils.MakeKey("trip_id", tripID)
-	var existingTrip models.Trip
-	tripBytes, closer, err := batch.Get(key)
+	defer batch.Close()
+
+	ulid := trip.GetID()
+	numID, ok, err := Lookup(Client, ulid)
 	if err != nil {
-		if err == pebble.ErrNotFound {
-			return models.ErrTripNotFound
-		}
+		return err
+	}
+	if !ok {
+		return models.ErrTripNotFound
+	}
+
+	keyTrip := utils.MakeKey("trip_id", ulid)
+	prevBytes, closer, err := batch.Get(keyTrip)
+	if err == pebble.ErrNotFound {
+		return models.ErrTripNotFound
+	}
+	if err != nil {
 		return err
 	}
 	defer closer.Close()
-	err = json.Unmarshal(tripBytes, &existingTrip)
-	if err != nil {
+
+	var prev models.TripBase
+	if err = json.Unmarshal(prevBytes, &prev); err != nil {
 		return err
 	}
-	existingTokens := existingTrip.Tokenize()
-	startTime := time.Now()
-	defer func() {
-		endTime := time.Now()
-		duration := endTime.Sub(startTime)
-		if err != nil {
-			c.Logger().Debugj(log.JSON{"update_trip": duration, "error": err.Error()})
-		}
-	}()
 
-	// naive update
-	for _, tokenKey := range existingTokens {
-		existingData, closer, err := batch.Get(tokenKey)
+	for _, tk := range prev.Tokenize() {
+		data, closeFn, err := batch.Get(tk)
+		if err != nil && err != pebble.ErrNotFound {
+			return err
+		}
+
+		rb, err := decode(data)
 		if err != nil {
-			if err != pebble.ErrNotFound {
+			return err
+		}
+		if rb.Remove(numID); rb.IsEmpty() {
+			if err = batch.Delete(tk, pebble.Sync); err != nil {
 				return err
+			}
+			if closeFn != nil {
+				if err := closeFn.Close(); err != nil {
+					return err
+				}
 			}
 			continue
 		}
-		defer closer.Close()
-		var existingIDs []string
-		err = json.Unmarshal(existingData, &existingIDs)
-		if err != nil {
+		blob, _ := encode(rb)
+		if err = batch.Set(tk, blob, nil); err != nil {
 			return err
 		}
-		existingIDs = utils.Remove(existingIDs, tripID)
-		if len(existingIDs) == 0 {
-			err = batch.Delete(tokenKey, pebble.Sync)
-		} else {
-			updatedData, err := json.Marshal(existingIDs)
-			if err != nil {
+
+		if closeFn != nil {
+			if err := closeFn.Close(); err != nil {
 				return err
 			}
-			err = batch.Set(tokenKey, updatedData, pebble.Sync)
-		}
-		if err != nil {
-			return err
 		}
 	}
-	err = writeTokens(c, batch, trip)
-	if err != nil {
+
+	if err = writeTokens(c, batch, trip, numID); err != nil {
+		return err
+	}
+
+	newJSON, _ := json.Marshal(trip)
+	if err = batch.Set(keyTrip, newJSON, pebble.Sync); err != nil {
 		return err
 	}
 	return batch.Commit(pebble.Sync)

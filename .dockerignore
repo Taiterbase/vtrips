@@ -1,0 +1,24 @@
+# Ignore VCS and Terraform
+.git/
+.gitignore
+**/.terraform/
+**/.terraform.lock.hcl
+**/*.tfstate*
+
+# Node
+node_modules/
+
+# Logs and binaries
+*.log
+*.bin
+
+# Go vendor and build outputs
+vendor/
+**/vendor/
+**/bin/
+**/dist/
+**/build/
+
+# Archives and docs
+*.md
+*.tar.gz

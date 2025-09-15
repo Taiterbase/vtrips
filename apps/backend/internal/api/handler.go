@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/RoaringBitmap/roaring/roaring64"
 	"github.com/Taiterbase/vtrips/apps/backend/internal/storage"
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
 	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
@@ -43,7 +43,7 @@ func CreateTrip(c echo.Context) error {
 	trip := models.NewTrip()
 	err := c.Bind(&trip)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, "Invalid request body")
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	if err = trip.Validate(); err != nil {
@@ -60,105 +60,142 @@ func CreateTrip(c echo.Context) error {
 	return c.JSON(http.StatusOK, trip)
 }
 
-func GetTrip(c echo.Context) error {
-	var (
-		org    = c.QueryParam("org_id")
-		tripID = c.Param("trip_id")
-	)
-	if tripID == "" {
-		return c.JSON(http.StatusBadRequest, models.ErrInvalidTripID)
-	}
-	if org == "" {
-		return c.JSON(http.StatusBadRequest, models.ErrInvalidOrgID)
-	}
-
-	trip, err := getTrip(c, org, tripID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	return c.JSON(http.StatusOK, trip)
-}
-
-func getTrip(c echo.Context, org, tripID string) (models.Trip, error) {
-	orgs, err := storage.GetIDsFromToken(c, []byte(fmt.Sprintf("org_id:%s", org)))
+func getTrip(c echo.Context, orgID, tripID string) (models.Trip, error) {
+	numID, ok, err := storage.Lookup(storage.Client, tripID)
 	if err != nil {
 		return nil, err
 	}
-	// take the intersection of the two lists
-	trips := utils.Intersection(orgs, []string{tripID})
-	if len(trips) == 0 {
+	if !ok { // unknown ULID
 		return nil, models.ErrTripNotFound
 	}
-	return storage.ReadTrip(c, trips[0])
+
+	orgToken := utils.MakeKey("org_id", orgID)
+	bm, err := storage.BitmapForToken(orgToken)
+	if err != nil {
+		return nil, err
+	}
+	if !bm.Contains(numID) {
+		return nil, models.ErrTripNotFound
+	}
+
+	return storage.ReadTrip(c, tripID)
+}
+
+func GetTrip(c echo.Context) error {
+	orgID := c.QueryParam("org_id")
+	tripID := c.Param("trip_id")
+	if orgID == "" || tripID == "" {
+		return c.JSON(http.StatusBadRequest, models.ErrInvalidTripID)
+	}
+	trip, err := getTrip(c, orgID, tripID)
+	switch err {
+	case nil:
+		return c.JSON(http.StatusOK, trip)
+	case models.ErrTripNotFound:
+		return c.JSON(http.StatusNotFound, err.Error())
+	default:
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+}
+
+func GetTrips(c echo.Context) error {
+	scannedCount := 0
+	bitmapMap := make(map[string]*roaring64.Bitmap)
+	for key, vals := range c.QueryParams() {
+		for _, v := range vals {
+			tk := utils.MakeKey(key, v)
+			bm, err := storage.BitmapForToken(tk)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, err.Error())
+			}
+			if orBm, ok := bitmapMap[key]; !ok {
+				bitmapMap[key] = bm
+			} else {
+				// if we've seen this key before in the query parameters, take a running union of the bm
+				bitmapMap[key] = roaring64.Or(bm, orBm)
+			}
+		}
+	}
+
+	var bms []*roaring64.Bitmap
+	for _, bm := range bitmapMap {
+		scannedCount += int(bm.GetCardinality())
+		bms = append(bms, bm)
+	}
+	intersection := roaring64.FastAnd(bms...)
+	if intersection.IsEmpty() {
+		return c.JSON(http.StatusOK, []models.Trip{})
+	}
+	c.Logger().Debugj(log.JSON{"message": "we have an intersection", "intersection": intersection})
+
+	var trips []models.Trip
+	it := intersection.Iterator()
+	for it.HasNext() {
+		numID := it.Next()
+		ulid, ok, err := storage.Reverse(storage.Client, numID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		if !ok {
+			continue
+		} // should not happen
+		t, err := storage.ReadTrip(c, ulid)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		trips = append(trips, t)
+	}
+	return c.JSON(http.StatusOK, log.JSON{
+		"trips":         trips,
+		"count":         len(trips),
+		"scanned_count": scannedCount,
+	})
 }
 
 func UpdateTrip(c echo.Context) error {
 	var (
 		tripID = c.Param("trip_id")
-		org    = c.QueryParam("org_id")
+		orgID  = c.QueryParam("org_id")
 	)
-	trip, err := getTrip(c, org, tripID)
-	if err != nil {
+	trip, err := getTrip(c, orgID, tripID)
+	switch err {
+	case models.ErrTripNotFound:
+		return c.JSON(http.StatusNotFound, err.Error())
+	case nil:
+		break
+	default:
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	if err = c.Bind(&trip); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 	trip.SetUpdatedAt(time.Now().Unix())
-	// write/apply the update to the tokens, handling removal and addition from lists
+	err = storage.UpdateTrip(c, trip)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 
-	return c.JSON(http.StatusOK, trip)
+	return c.JSON(http.StatusOK, nil)
 }
 
 func DeleteTrip(c echo.Context) error {
 	var (
-		_      = c.QueryParam("org_id")
+		orgID  = c.QueryParam("org_id")
 		tripID = c.Param("trip_id")
 	)
-
-	return c.JSON(http.StatusOK, tripID)
-}
-
-func GetTrips(c echo.Context) error {
-	params := c.QueryParams()
-	tokens := []string{}
-	for key, values := range params {
-		if len(values) == 0 {
-			continue
-		}
-		for _, value := range values {
-			// todo(t8): if there are multiple values, this implies an OR condition, which means a set union and not a set intersection
-			tokens = append(tokens, fmt.Sprintf("%s:%s", key, value))
-		}
+	trip, err := getTrip(c, orgID, tripID)
+	switch err {
+	case models.ErrTripNotFound:
+		return c.JSON(http.StatusNotFound, err.Error())
+	case nil:
+		break
+	default:
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	c.Logger().Debugj(log.JSON{"tokens": tokens})
-	// naive set intersection implementation
-	tokenList := map[string][]string{}
-	for _, token := range tokens {
-		token := []byte(token)
-		tokenIDs, err := storage.GetIDsFromToken(c, token)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, err.Error())
-		}
-		tokenList[string(token)] = tokenIDs
-		c.Logger().Debugj(log.JSON{"token": string(token), "tokenIDs": tokenIDs})
-	}
-	intersection := []string{}
-	for _, ids := range tokenList {
-		if len(intersection) == 0 {
-			intersection = ids
-			continue
-		}
-		intersection = utils.Intersection(intersection, ids)
-		c.Logger().Debugj(log.JSON{"intersection": intersection})
-		if len(intersection) == 0 {
-			return c.JSON(http.StatusOK, []models.Trip{})
-		}
-	}
-	trips, err := storage.ReadTrips(c, intersection)
+	err = storage.DeleteTrip(c, trip)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	c.Logger().Debugj(log.JSON{"trips": trips})
-	return c.JSON(http.StatusOK, trips)
+	return c.JSON(http.StatusOK, tripID)
 }

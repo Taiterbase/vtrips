@@ -1,10 +1,13 @@
 app:
   name: backend
 
+image:
+  repository: registry.k8s.io/echoserver
+  tag: "1.10"
+
+logLevel: DEBUG
+
 service:
   type: ClusterIP
   port: 80
   targetPort: 8080
-
-db:
-  connectionUrl: "jdbc:postgresql://postgres:password@localhost:5432/vtrips"

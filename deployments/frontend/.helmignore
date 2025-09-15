@@ -1,0 +1,17 @@
+.terraform/
+*.tf
+*.tfvars
+.terraform.lock.hcl
+
+.git/
+.gitignore
+
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+*.log
+*.bin
+node_modules/
+

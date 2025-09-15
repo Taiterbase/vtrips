@@ -1,6 +1,12 @@
 app:
   name: frontend
 
+image:
+  repository: registry.k8s.io/echoserver
+  tag: "1.10"
+
+logLevel: DEBUG
+
 serviceAccount:
   create: true
 
