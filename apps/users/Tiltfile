@@ -1,0 +1,24 @@
+#local_resource('ddb-migration', './migrations/dynamodb/migrate.sh', labels=["bootstrap"], resource_deps=["localstack"], deps=['./migrations/dynamodb'])
+local_resource(
+    'clean-users',
+    'rm -f ./users.bin',  
+)
+
+local_resource(
+    'build-users',
+    'GOOS=linux GOARCH=arm64 go build -o ./users.bin ./cmd/main.go',
+    deps=['./internal', './cmd', './pkg'],
+    resource_deps=['clean-users']
+)
+
+docker_build(
+    'users-image',
+    '.',
+    dockerfile='../../deployments/users/Dockerfile.dev',
+    live_update=[
+        sync('./apps/users/users.bin', '/app/users.bin'),
+        run('chmod 755 /app/users.bin')
+    ]
+)
+k8s_yaml(helm('../../deployments/users', name="users"), allow_duplicates=True)
+k8s_resource('users', port_forwards=["8080:8080"], labels=['services'], resource_deps=['build-users'])
