@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /src
 
 COPY go.mod go.sum ./
@@ -10,6 +10,6 @@ RUN go build -o /frontend.bin ./cmd/main.go
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /frontend.bin /frontend.bin
-RUN chmod 755 /frontend.bin
-ENTRYPOINT ["/frontend.bin"]
+COPY --from=builder /frontend.bin /app/frontend.bin
+RUN chmod 755 /app/frontend.bin
+ENTRYPOINT ["/app/frontend.bin"]

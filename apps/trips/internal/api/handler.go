@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
-	"github.com/Taiterbase/vtrips/apps/backend/internal/storage"
-	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
-	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
+	"github.com/Taiterbase/vtrips/apps/trips/internal/storage"
+	"github.com/Taiterbase/vtrips/apps/trips/pkg/models"
 	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
@@ -69,7 +68,7 @@ func getTrip(c echo.Context, orgID, tripID string) (models.Trip, error) {
 		return nil, models.ErrTripNotFound
 	}
 
-	orgToken := utils.MakeKey("org_id", orgID)
+	orgToken := models.MakeKey("org_id", orgID)
 	bm, err := storage.BitmapForToken(orgToken)
 	if err != nil {
 		return nil, err
@@ -103,7 +102,7 @@ func GetTrips(c echo.Context) error {
 	bitmapMap := make(map[string]*roaring64.Bitmap)
 	for key, vals := range c.QueryParams() {
 		for _, v := range vals {
-			tk := utils.MakeKey(key, v)
+			tk := models.MakeKey(key, v)
 			bm, err := storage.BitmapForToken(tk)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, err.Error())

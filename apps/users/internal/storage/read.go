@@ -1,13 +1,12 @@
 package storage
 
 import (
-	"encoding/json"
+    "encoding/json"
 
-	"github.com/RoaringBitmap/roaring/roaring64"
-	"github.com/Taiterbase/vtrips/apps/users/pkg/models"
-	"github.com/Taiterbase/vtrips/apps/users/pkg/utils"
-	"github.com/cockroachdb/pebble"
-	"github.com/labstack/echo"
+    "github.com/RoaringBitmap/roaring/roaring64"
+    "github.com/Taiterbase/vtrips/apps/users/pkg/models"
+    "github.com/cockroachdb/pebble"
+    "github.com/labstack/echo"
 )
 
 // BitmapForToken returns the decoded bitmap for tokenKey or an empty bitmap.
@@ -23,23 +22,23 @@ func BitmapForToken(tokenKey []byte) (*roaring64.Bitmap, error) {
 	return decode(v)
 }
 
-func ReadUser(c echo.Context, userID string) (models.User, error) {
-	var user models.UserBase
-	userKey := utils.MakeKey("user_id", userID)
+func ReadUser(c echo.Context, userID string) (*models.User, error) {
+    var user models.User
+	userKey := models.MakeKey("user_id", userID)
 	userBytes, closer, err := Client.Get(userKey)
 	if err != nil {
 		if err == pebble.ErrNotFound {
-			return nil, models.ErrUserNotFound
+            return nil, models.ErrUserNotFound
 		}
-		return nil, err
+        return nil, err
 	}
 	defer closer.Close()
 	err = json.Unmarshal(userBytes, &user)
-	return &user, err
+    return &user, err
 }
 
-func ReadUsers(c echo.Context, userID []string) ([]models.User, error) {
-	var users []models.User
+func ReadUsers(c echo.Context, userID []string) ([]*models.User, error) {
+    var users []*models.User
 	for _, userID := range userID {
 		user, err := ReadUser(c, userID)
 		if err != nil {

@@ -5,8 +5,7 @@ import (
 	"slices"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
-	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
-	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
+	"github.com/Taiterbase/vtrips/apps/trips/pkg/models"
 	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
@@ -84,7 +83,7 @@ func CreateTrip(c echo.Context, trip models.Trip) error {
 	batch := Client.NewIndexedBatch()
 	defer batch.Close()
 
-	keyTrip := utils.MakeKey("trip_id", trip.GetID())
+	keyTrip := models.MakeKey("trip_id", trip.GetID())
 	j, err := json.Marshal(trip)
 	if err != nil {
 		return err
@@ -111,7 +110,7 @@ func DeleteTrip(c echo.Context, trip models.Trip) error {
 		return err // not found = nothing to delete
 	}
 
-	keyTrip := utils.MakeKey("trip_id", ulid)
+	keyTrip := models.MakeKey("trip_id", ulid)
 	oldBytes, closer, err := batch.Get(keyTrip)
 	if err == pebble.ErrNotFound {
 		return nil
@@ -180,7 +179,7 @@ func UpdateTrip(c echo.Context, trip models.Trip) error {
 		return models.ErrTripNotFound
 	}
 
-	keyTrip := utils.MakeKey("trip_id", ulid)
+	keyTrip := models.MakeKey("trip_id", ulid)
 	prevBytes, closer, err := batch.Get(keyTrip)
 	if err == pebble.ErrNotFound {
 		return models.ErrTripNotFound

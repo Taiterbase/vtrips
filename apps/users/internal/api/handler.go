@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
+	"github.com/Taiterbase/vtrips/apps/users/internal/auth"
 	"github.com/Taiterbase/vtrips/apps/users/internal/storage"
 	"github.com/Taiterbase/vtrips/apps/users/pkg/models"
-	"github.com/Taiterbase/vtrips/apps/users/pkg/utils"
 	"github.com/cockroachdb/pebble"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func DatabaseDebug(c echo.Context) error {
@@ -60,7 +62,7 @@ func CreateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, trip)
 }
 
-func getUser(c echo.Context, orgID, tripID string) (models.User, error) {
+func getUser(c echo.Context, orgID, tripID string) (*models.User, error) {
 	numID, ok, err := storage.Lookup(storage.Client, tripID)
 	if err != nil {
 		return nil, err
@@ -69,7 +71,7 @@ func getUser(c echo.Context, orgID, tripID string) (models.User, error) {
 		return nil, models.ErrUserNotFound
 	}
 
-	orgToken := utils.MakeKey("org_id", orgID)
+	orgToken := models.MakeKey("org_id", orgID)
 	bm, err := storage.BitmapForToken(orgToken)
 	if err != nil {
 		return nil, err
@@ -103,7 +105,7 @@ func GetUsers(c echo.Context) error {
 	bitmapMap := make(map[string]*roaring64.Bitmap)
 	for key, vals := range c.QueryParams() {
 		for _, v := range vals {
-			tk := utils.MakeKey(key, v)
+			tk := models.MakeKey(key, v)
 			bm, err := storage.BitmapForToken(tk)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, err.Error())
@@ -128,7 +130,7 @@ func GetUsers(c echo.Context) error {
 	}
 	c.Logger().Debugj(log.JSON{"message": "we have an intersection", "intersection": intersection})
 
-	var trips []models.User
+	var trips []*models.User
 	it := intersection.Iterator()
 	for it.HasNext() {
 		numID := it.Next()
@@ -200,15 +202,99 @@ func DeleteUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, tripID)
 }
 
-// Auth handlers (stubs)
-func LoginHandler(c echo.Context) error {
-    return c.JSON(http.StatusOK, map[string]any{"message": "login not implemented"})
+func SignUpHandler(c echo.Context) error {
+	username := c.FormValue("username")
+	contact := c.FormValue("contact")
+	password := c.FormValue("password")
+	if username == "" || contact == "" || password == "" {
+		return c.JSON(http.StatusBadRequest, "missing required fields")
+	}
+
+	// Enforce unique username via equality index bitmap
+	unameToken := models.MakeKey("username", username)
+	existingBm, err := storage.BitmapForToken(unameToken)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if !existingBm.IsEmpty() {
+		return c.JSON(http.StatusConflict, "username already exists")
+	}
+
+	// hash password
+	hashBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	u := models.NewUser()
+	u.Username = username
+	u.Contact = contact
+	u.ContactMethod = "email"
+	u.Hash = string(hashBytes)
+
+	if err := u.Validate(); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if err := storage.CreateUser(c, u); err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	_ = auth.SetCookieWithJWT(c.Response().Writer, u.ID, u.Username, "")
+	return c.JSON(http.StatusOK, echo.Map{"id": u.ID, "username": u.Username})
 }
 
-func SignUpHandler(c echo.Context) error {
-    return c.JSON(http.StatusOK, map[string]any{"message": "signup not implemented"})
+func LoginHandler(c echo.Context) error {
+	username := c.FormValue("username")
+	password := c.FormValue("password")
+	if username == "" || password == "" {
+		return c.JSON(http.StatusBadRequest, "missing credentials")
+	}
+
+	// Lookup by username index
+	token := models.MakeKey("username", username)
+	bm, err := storage.BitmapForToken(token)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if bm.IsEmpty() {
+		return c.JSON(http.StatusUnauthorized, "invalid credentials")
+	}
+	// Use the first match (usernames should be unique)
+	it := bm.Iterator()
+	if !it.HasNext() {
+		return c.JSON(http.StatusUnauthorized, "invalid credentials")
+	}
+	numID := it.Next()
+	ulid, ok, err := storage.Reverse(storage.Client, numID)
+	if err != nil || !ok {
+		return c.JSON(http.StatusUnauthorized, "invalid credentials")
+	}
+	usr, err := storage.ReadUser(c, ulid)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, "invalid credentials")
+	}
+	// compare hash
+	if err := bcrypt.CompareHashAndPassword([]byte(usr.GetHash()), []byte(password)); err != nil {
+		return c.JSON(http.StatusUnauthorized, "invalid credentials")
+	}
+
+	_ = auth.SetCookieWithJWT(c.Response().Writer, usr.GetID(), usr.GetUsername(), "")
+	return c.JSON(http.StatusOK, echo.Map{"id": usr.GetID(), "username": usr.GetUsername()})
 }
 
 func LogoutHandler(c echo.Context) error {
-    return c.JSON(http.StatusOK, map[string]any{"message": "logout not implemented"})
+	// Read current token and revoke by user ID
+	cookie, err := c.Cookie(auth.AuthCookieName)
+	if err == nil && cookie != nil && cookie.Value != "" {
+		if claims, err := auth.Validate(cookie.Value); err == nil {
+			if m, ok := claims.(jwt.MapClaims); ok {
+				if sub, ok := m["sub"].(string); ok && sub != "" {
+					_ = storage.SetRevokedBefore(sub, time.Now().Unix())
+				}
+			}
+		}
+	}
+	auth.InvalidateCookie(c.Response().Writer)
+	return c.JSON(http.StatusOK, echo.Map{"ok": true})
 }

@@ -1,0 +1,17 @@
+app:
+  name: users
+
+image:
+  repository: registry.k8s.io/echoserver
+  tag: "1.10"
+
+logLevel: DEBUG
+
+env:
+  JWT_SECRET: "dev-secret"
+  ENVIRONMENT: "development"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080

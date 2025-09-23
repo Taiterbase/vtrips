@@ -27,3 +27,5 @@ spec:
               value: frontend
             - name: LOG_LEVEL
               value: {{ .Values.logLevel | default "DEBUG" | quote }}
+            - name: USERS_BASE_URL
+              value: {{ .Values.env.USERS_BASE_URL | default "http://users:80" | quote }}

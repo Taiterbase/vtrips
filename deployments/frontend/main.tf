@@ -29,7 +29,7 @@ resource "null_resource" "build_and_push" {
     image_tag   = var.image_tag
     repo_url    = var.build_image ? aws_ecr_repository.this[0].repository_url : ""
     dockerfile  = filemd5("./Dockerfile")
-    source_hash = "frontend"
+    source_hash = filesha256("../../apps/frontend/cmd/main.go")
   }
 
   provisioner "local-exec" {
@@ -42,7 +42,8 @@ resource "null_resource" "build_and_push" {
 
       aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REPO_URL"
 
-      docker build -t "$REPO_URL:$IMAGE_TAG" -f ./Dockerfile .
+      # Use repo root as build context so Dockerfile paths like apps/frontend/... exist
+      docker build -t "$REPO_URL:$IMAGE_TAG" -f ./Dockerfile ../../
       docker push "$REPO_URL:$IMAGE_TAG"
     EOT
   }

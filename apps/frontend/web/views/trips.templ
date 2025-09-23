@@ -1,0 +1,68 @@
+package views
+
+templ TripsPartial(userName string) {
+  <div class="flex flex-grow flex-nowrap flex-col items-center overflow-hidden relative h-full overflow-x-hidden overflow-y-scroll">
+    <main class="h-full w-full mx-auto bg-neutral-950 relative flex-grow flex flex-col z-[1] px-8 md:px-10 lg:px-20 max-w-8xl">
+      <div class="relative flex h-full w-full py-8">
+        <div class="flex flex-col h-full w-full items-center">
+          <div class="flex flex-col min-w-full justify-items-start items-center">
+            <div class="w-full pt-4 sm:pt-8 md:pt-12 lg:pt-16">
+              <div class="flex flex-row w-full justify-between items-center flex-nowrap">
+                <div class="flex-nowrap whitespace-nowrap flex flex-grow">
+                  <h1 class="text-4xl md:text-5xl font-semibold text-neutral-100">
+                    <span class="hidden md:block">Welcome, { userName }</span>
+                    <span class="block md:hidden"> Welcome </span>
+                  </h1>
+                </div>
+                <div class="flex-nowrap whitespace-nowrap flex flex-grow-0"></div>
+              </div>
+            </div>
+            <div id="page_content" class="py-12 lg:py-16 flex flex-col w-full h-full">
+              <div class="py-8 w-full h-full">
+                <div class="flex flex-row justify-between items-center w-full">
+                  <h2 class="text-neutral-100 text-3xl md:text-4xl font-medium">Trips this week</h2>
+                </div>
+                <div class="flex flex-col w-full h-full">
+                  <div class="flex flex-row w-full h-full flex-nowrap overflow-x-scroll justify-center items-center">
+                    <div class="bg-neutral-700 h-96 w-full rounded-lg"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="py-8 w-full h-full">
+                <div class="flex flex-row justify-between items-center w-full">
+                  <h2 class="text-neutral-100 text-3xl md:text-4xl font-medium">Pending applications</h2>
+                </div>
+                <div class="flex flex-col w-full h-full">
+                  <div class="flex flex-row w-full h-full flex-nowrap overflow-x-scroll justify-center items-center">
+                    <div class="bg-neutral-700 h-96 w-full rounded-lg"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+}
+
+templ TripsPage(userName string) {
+  <!DOCTYPE html>
+  <html class="h-full bg-neutral-950">
+    <head>
+      <title>Trips</title>
+      @HeaderAssets()
+    </head>
+    <body hx-boost="true" hx-target="#content" hx-select="#content" hx-swap="outerHTML" hx-push-url="true" class="h-full overflow-hidden">
+      <div class="flex flex-col h-full">
+        @Navbar(true)
+        <div id="content" class="flex-1 min-h-0 overflow-hidden">
+          <div id="partial" class="h-full">
+            @TripsPartial(userName)
+          </div>
+        </div>
+      </div>
+      <div id="modal-portal" class="modal-portal"></div>
+    </body>
+  </html>
+}

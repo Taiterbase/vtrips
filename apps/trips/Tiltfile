@@ -1,24 +1,27 @@
+load('ext://restart_process', 'docker_build_with_restart', 'RESTART_FILE')
 #local_resource('ddb-migration', './migrations/dynamodb/migrate.sh', labels=["bootstrap"], resource_deps=["localstack"], deps=['./migrations/dynamodb'])
 local_resource(
-    'clean-backend',
-    'rm -f ./backend.bin',  
+    'clean-trips',
+    'rm -f ./trips.bin',  
 )
 
 local_resource(
-    'build-backend',
-    'GOOS=linux GOARCH=arm64 go build -o ./backend.bin ./cmd/main.go',
+    'build-trips',
+    'GOOS=linux GOARCH=arm64 go build -o ./trips.bin ./cmd/main.go',
     deps=['./internal', './cmd', './pkg'],
-    resource_deps=['clean-backend']
+    resource_deps=['clean-trips']
 )
 
-docker_build(
-    'backend-image',
+docker_build_with_restart(
+    'trips-image',
     '.',
-    dockerfile='../../deployments/backend/Dockerfile.dev',
+    dockerfile='../../deployments/trips/Dockerfile.dev',
+    entrypoint='/app/trips.bin',
     live_update=[
-        sync('./apps/backend/backend.bin', '/app/backend.bin'),
-        run('chmod 755 /app/backend.bin')
+        sync('./trips.bin', '/app/trips.bin'),
+        run('chmod 755 /app/trips.bin'),
+        run('sh -lc "touch %s"' % RESTART_FILE)
     ]
 )
-k8s_yaml(helm('../../deployments/backend', name="backend"), allow_duplicates=True)
-k8s_resource('backend', port_forwards=["8080:8080"], labels=['services'], resource_deps=['build-backend'])
+k8s_yaml(helm('../../deployments/trips', name="trips", set=['image.repository=trips-image', 'image.tag=dev']), allow_duplicates=True)
+k8s_resource('trips', port_forwards=["8081:8080"], labels=['services'], resource_deps=['build-trips'])

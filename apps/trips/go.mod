@@ -1,4 +1,4 @@
-module github.com/Taiterbase/vtrips/apps/backend
+module github.com/Taiterbase/vtrips/apps/trips
 
 go 1.23.4
 
@@ -9,6 +9,7 @@ require (
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.4.2
+	github.com/oklog/ulid/v2 v2.1.1
 )
 
 require (

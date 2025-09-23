@@ -1,0 +1,33 @@
+load('ext://restart_process', 'docker_build_with_restart', 'RESTART_FILE')
+local_resource(
+    'clean-frontend',
+    'rm -f ./frontend.bin',  
+)
+
+# Run templ in its own local_resource to avoid rebuild loops and race conditions
+local_resource(
+    'templ-gen',
+    'go run github.com/a-h/templ/cmd/templ@v0.3.943 generate ./...',
+    deps=['./web/views/*.templ', './web/views/**/*.templ'],
+)
+
+local_resource(
+    'build-frontend',
+    'GOOS=linux GOARCH=arm64 go build -o ./frontend.bin ./cmd/main.go',
+    deps=['./internal', './cmd', './go.mod', './go.sum', './web/views/*.go', './web/static/*.go'],
+    resource_deps=['templ-gen', 'clean-frontend']
+)
+
+docker_build_with_restart(
+    'frontend-image',
+    '.',
+    dockerfile='../../deployments/frontend/Dockerfile.dev',
+    entrypoint='/app/frontend.bin',
+    live_update=[
+        sync('./frontend.bin', '/app/frontend.bin'),
+        run('chmod 755 /app/frontend.bin'),
+        run('sh -lc "touch %s"' % RESTART_FILE)
+    ]
+)
+k8s_yaml(helm('../../deployments/frontend', name="frontend", set=['image.repository=frontend-image', 'image.tag=dev']), allow_duplicates=True)
+k8s_resource('frontend', port_forwards=["8080:8080"], labels=['services'], resource_deps=['build-frontend'])

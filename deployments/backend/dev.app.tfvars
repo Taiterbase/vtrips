@@ -1,8 +1,8 @@
 aws_region  = "us-west-2"
 cluster_name = "vtrips-dev-eks"
 
-namespace    = "backend"
-release_name = "backend"
+namespace    = "trips"
+release_name = "trips"
 
 chart_path = "./"
 
@@ -23,5 +23,5 @@ wait             = true
 timeout          = 600
 atomic           = true
 
-ecr_repo_name = "vtrips-backend"
+ecr_repo_name = "vtrips-trips"
 image_tag     = "dev"

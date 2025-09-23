@@ -6,7 +6,6 @@ import (
 
 	"github.com/RoaringBitmap/roaring/roaring64"
 	"github.com/Taiterbase/vtrips/apps/users/pkg/models"
-	"github.com/Taiterbase/vtrips/apps/users/pkg/utils"
 	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
@@ -28,7 +27,7 @@ func encode(rb *roaring64.Bitmap) ([]byte, error) {
 	return rb.MarshalBinary()
 }
 
-func writeTokens(c echo.Context, batch *pebble.Batch, user models.User, numericID uint64) (err error) {
+func writeTokens(c echo.Context, batch *pebble.Batch, user *models.User, numericID uint64) (err error) {
 	defer func() {
 		if err != nil {
 			c.Logger().Errorj(log.JSON{"err": err})
@@ -76,7 +75,7 @@ func writeTokens(c echo.Context, batch *pebble.Batch, user models.User, numericI
 	return nil
 }
 
-func CreateUser(c echo.Context, user models.User) error {
+func CreateUser(c echo.Context, user *models.User) error {
 	numID, err := GetOrAllocate(Client, user.GetID())
 	if err != nil {
 		return err
@@ -84,7 +83,7 @@ func CreateUser(c echo.Context, user models.User) error {
 	batch := Client.NewIndexedBatch()
 	defer batch.Close()
 
-	keyUser := utils.MakeKey("user_id", user.GetID())
+	keyUser := models.MakeKey("user_id", user.GetID())
 	j, err := json.Marshal(user)
 	if err != nil {
 		return err
@@ -100,7 +99,7 @@ func CreateUser(c echo.Context, user models.User) error {
 }
 
 // DeleteUser removes the user object and its posting-list entries.
-func DeleteUser(c echo.Context, user models.User) error {
+func DeleteUser(c echo.Context, user *models.User) error {
 	batch := Client.NewIndexedBatch()
 	defer batch.Close()
 
@@ -111,7 +110,7 @@ func DeleteUser(c echo.Context, user models.User) error {
 		return err // not found = nothing to delete
 	}
 
-	keyUser := utils.MakeKey("user_id", ulid)
+	keyUser := models.MakeKey("user_id", ulid)
 	oldBytes, closer, err := batch.Get(keyUser)
 	if err == pebble.ErrNotFound {
 		return nil
@@ -121,7 +120,7 @@ func DeleteUser(c echo.Context, user models.User) error {
 	}
 	defer closer.Close()
 
-	var oldUser models.UserBase
+    var oldUser models.User
 	if err = json.Unmarshal(oldBytes, &oldUser); err != nil {
 		return err
 	}
@@ -167,7 +166,7 @@ func DeleteUser(c echo.Context, user models.User) error {
 
 // UpdateUser overwrites the user JSON and refreshes all bitmap tokens.
 // Simplest strategy: delete old postings then re-add new ones.
-func UpdateUser(c echo.Context, user models.User) error {
+func UpdateUser(c echo.Context, user *models.User) error {
 	batch := Client.NewIndexedBatch()
 	defer batch.Close()
 
@@ -180,7 +179,7 @@ func UpdateUser(c echo.Context, user models.User) error {
 		return models.ErrUserNotFound
 	}
 
-	keyUser := utils.MakeKey("user_id", ulid)
+	keyUser := models.MakeKey("user_id", ulid)
 	prevBytes, closer, err := batch.Get(keyUser)
 	if err == pebble.ErrNotFound {
 		return models.ErrUserNotFound
@@ -190,7 +189,7 @@ func UpdateUser(c echo.Context, user models.User) error {
 	}
 	defer closer.Close()
 
-	var prev models.UserBase
+    var prev models.User
 	if err = json.Unmarshal(prevBytes, &prev); err != nil {
 		return err
 	}

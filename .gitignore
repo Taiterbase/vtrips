@@ -1,3 +1,6 @@
 vendor/
-backend.bin
+*.bin
 repo.tar.gz
+apps/users/users.bin
+apps/trips/trips.bin
+apps/frontend/frontend.bin

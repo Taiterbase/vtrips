@@ -1,0 +1,69 @@
+package views
+
+// OrgLayout now wraps the site RootLayout to keep a consistent look.
+templ OrgLayout(title string, userLoggedIn bool) {
+  @RootLayout(title, userLoggedIn) {
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      @templ.GetChildren(ctx)
+    </div>
+  }
+}
+
+templ OrgDashboardPage() {
+  @OrgLayout("Organization Dashboard", true) {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <a href="/org/trips" class="block p-6 bg-white rounded-lg shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Active Trips</div>
+        <div class="mt-2 text-2xl font-semibold">3</div>
+      </a>
+      <a href="/org/applications" class="block p-6 bg-white rounded-lg shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Pending Applications</div>
+        <div class="mt-2 text-2xl font-semibold">12</div>
+      </a>
+      <a href="/org/trips/new" class="block p-6 bg-white rounded-lg shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Create a Trip</div>
+        <div class="mt-2 text-2xl font-semibold">+</div>
+      </a>
+    </div>
+  }
+}
+
+templ TripsIndexPage() {
+  @OrgLayout("Trips", true) {
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-semibold">Trips</h2>
+      <a href="/org/trips/new" class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">New Trip</a>
+    </div>
+    <div class="mt-6 text-gray-500">No trips to show yet.</div>
+  }
+}
+
+templ TripNewPage() {
+  @OrgLayout("Create Trip", true) {
+    <form method="post" action="/org/trips" class="space-y-4 max-w-xl">
+      <div><label class="block text-sm text-gray-600">Title</label><input name="title" class="mt-1 w-full border rounded-md px-3 py-2" required></div>
+      <div><label class="block text-sm text-gray-600">Location</label><input name="location" class="mt-1 w-full border rounded-md px-3 py-2" required></div>
+      <div><label class="block text-sm text-gray-600">Description</label><textarea name="description" class="mt-1 w-full border rounded-md px-3 py-2" rows="5"></textarea></div>
+      <div class="pt-2"><button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" type="submit">Create</button></div>
+    </form>
+  }
+}
+
+templ ApplicationsIndexPage() {
+  @OrgLayout("Applications", true) {
+    <h2 class="text-xl font-semibold">Volunteer Applications</h2>
+    <div class="mt-4 text-gray-500">No applications yet.</div>
+  }
+}
+
+templ ApplicationShowPage() {
+  @OrgLayout("Application", true) {
+    <div class="space-y-4">
+      <h2 class="text-xl font-semibold">Application</h2>
+      <form method="post" action="grade" class="space-x-2">
+        <button name="decision" value="approve" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Approve</button>
+        <button name="decision" value="reject" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Reject</button>
+      </form>
+    </div>
+  }
+}

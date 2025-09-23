@@ -1,3 +1,4 @@
+load('ext://restart_process', 'docker_build_with_restart', 'RESTART_FILE')
 #local_resource('ddb-migration', './migrations/dynamodb/migrate.sh', labels=["bootstrap"], resource_deps=["localstack"], deps=['./migrations/dynamodb'])
 local_resource(
     'clean-users',
@@ -11,14 +12,16 @@ local_resource(
     resource_deps=['clean-users']
 )
 
-docker_build(
+docker_build_with_restart(
     'users-image',
     '.',
     dockerfile='../../deployments/users/Dockerfile.dev',
+    entrypoint='/app/users.bin',
     live_update=[
-        sync('./apps/users/users.bin', '/app/users.bin'),
-        run('chmod 755 /app/users.bin')
+        sync('./users.bin', '/app/users.bin'),
+        run('chmod 755 /app/users.bin'),
+        run('sh -lc "touch %s"' % RESTART_FILE)
     ]
 )
-k8s_yaml(helm('../../deployments/users', name="users"), allow_duplicates=True)
-k8s_resource('users', port_forwards=["8080:8080"], labels=['services'], resource_deps=['build-users'])
+k8s_yaml(helm('../../deployments/users', name="users", set=['image.repository=users-image', 'image.tag=dev']), allow_duplicates=True)
+k8s_resource('users', port_forwards=["8082:8080"], labels=['services'], resource_deps=['build-users'])

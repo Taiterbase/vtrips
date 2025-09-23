@@ -1,0 +1,46 @@
+package views
+
+templ BrowsePartial() {
+  <div class="flex flex-grow flex-nowrap flex-col overflow-x-hidden overflow-y-scroll relative h-full">
+    <main class="h-full w-full bg-neutral-950 relative flex-grow flex flex-col z-[1] max-w-8xl mx-auto">
+      <div class="relative flex h-full w-full py-8">
+        <div class="flex flex-col h-full w-full items-center">
+          <div class="flex flex-col min-w-full ">
+            <div class="flex flex-grow min-h-[40rem] max-h-full w-full mt-8">
+              <div class="grid flex-grow grid-cols-2 md:grid-cols-3 xl:grid-cols-4 grid-flow-row w-full">
+                for i := 0; i < 12; i++ {
+                  <div class="w-full h-full min-h-[12rem]">
+                    <div class="p-2 w-full h-full">
+                      <div class="bg-neutral-700 w-full min-h-[40rem] rounded-md border-2 border-neutral-800"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+}
+
+templ BrowsePage(userLoggedIn bool) {
+  <!DOCTYPE html>
+  <html class="h-full bg-neutral-950">
+    <head>
+      <title>Browse</title>
+      @HeaderAssets()
+    </head>
+    <body hx-boost="true" hx-target="#content" hx-select="#content" hx-swap="outerHTML" hx-push-url="true" class="h-full overflow-hidden">
+      <div class="flex flex-col h-full">
+        @Navbar(userLoggedIn)
+        <div id="content" class="flex-1 min-h-0 overflow-hidden">
+          <div id="partial" class="h-full">
+            @BrowsePartial()
+          </div>
+        </div>
+      </div>
+      <div id="modal-portal" class="modal-portal"></div>
+    </body>
+  </html>
+}

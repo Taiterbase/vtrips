@@ -6,10 +6,10 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /backend.bin ./cmd/main.go
+RUN go build -o /trips.bin ./cmd/main.go
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /backend.bin /backend.bin
-RUN chmod 755 /backend.bin
-ENTRYPOINT ["/backend.bin"]
+COPY --from=builder /trips.bin /trips.bin
+RUN chmod 755 /trips.bin
+ENTRYPOINT ["/trips.bin"]

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users
+  labels:
+    app: users
+spec:
+  selector:
+    matchLabels:
+      app: users
+  template:
+    metadata:
+      labels:
+        app: users
+    spec:
+      containers:
+        - name: users
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: HTTP_PORT
+              value: "8080"
+            - name: HTTP_HOST
+              value: "0.0.0.0"
+            - name: APP_NAME
+              value: users
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | default "DEBUG" | quote }}
+            - name: JWT_SECRET
+              value: {{ .Values.env.JWT_SECRET | default "dev-secret" | quote }}
+            - name: ENVIRONMENT
+              value: {{ .Values.env.ENVIRONMENT | default "development" | quote }}

@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/RoaringBitmap/roaring/roaring64"
-	"github.com/Taiterbase/vtrips/apps/backend/pkg/models"
-	"github.com/Taiterbase/vtrips/apps/backend/pkg/utils"
+	"github.com/Taiterbase/vtrips/apps/trips/pkg/models"
 	"github.com/cockroachdb/pebble"
 	"github.com/labstack/echo"
 )
@@ -25,7 +24,7 @@ func BitmapForToken(tokenKey []byte) (*roaring64.Bitmap, error) {
 
 func ReadTrip(c echo.Context, tripID string) (models.Trip, error) {
 	var trip models.TripBase
-	tripKey := utils.MakeKey("trip_id", tripID)
+	tripKey := models.MakeKey("trip_id", tripID)
 	tripBytes, closer, err := Client.Get(tripKey)
 	if err != nil {
 		if err == pebble.ErrNotFound {

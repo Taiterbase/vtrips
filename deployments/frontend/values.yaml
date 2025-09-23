@@ -7,6 +7,9 @@ image:
 
 logLevel: DEBUG
 
+env:
+  USERS_BASE_URL: "http://users:80"
+
 serviceAccount:
   create: true
 
