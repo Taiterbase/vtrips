@@ -23,6 +23,7 @@ type Trip interface {
 	GetCreatedAt() int64
 	GetUpdatedAt() int64
 	GetTripType() TripType
+	GetStatus() TripStatus
 	GetDeletedAt() int64
 
 	SetID(string)
@@ -30,6 +31,7 @@ type Trip interface {
 	SetCreatedAt(int64)
 	SetUpdatedAt(int64)
 	SetTripType(TripType)
+	SetStatus(TripStatus)
 	SetDeletedAt(int64)
 
 	Validate() error
@@ -51,8 +53,10 @@ type TripBase struct {
 	Price          float64     `json:"price" updateable:"true" index:"equality"`
 	Currency       string      `json:"currency" updateable:"true" index:"equality"`
 
-	Latitude   float64 `json:"latitude" updateable:"true" index:"geoposition"`
-	Longtitude float64 `json:"longtitude" updateable:"true" index:"geoposition"`
+	City      string  `json:"city" updateable:"true" index:"equality"`
+	Country   string  `json:"country" updateable:"true" index:"equality"`
+	Latitude  float64 `json:"latitude" updateable:"true" index:"geoposition"`
+	Longitude float64 `json:"longitude" updateable:"true" index:"geoposition"`
 
 	StartDate int64 `json:"start_date" updateable:"true" index:"time"`
 	EndDate   int64 `json:"end_date" updateable:"true" index:"time"`
@@ -106,6 +110,11 @@ func (t *TripBase) GetTripType() TripType {
 	return t.TripType
 }
 
+// GetStatus returns the status of the trip lifecycle
+func (t *TripBase) GetStatus() TripStatus {
+	return t.Status
+}
+
 // GetDeletedAt returns the deletion timestamp of the trip
 func (t *TripBase) GetDeletedAt() int64 {
 	return t.DeletedAt
@@ -134,6 +143,11 @@ func (t *TripBase) SetUpdatedAt(updatedAt int64) {
 // SetTripType sets the TripType of the trip
 func (t *TripBase) SetTripType(tripType TripType) {
 	t.TripType = tripType
+}
+
+// SetStatus updates the lifecycle status of the trip
+func (t *TripBase) SetStatus(status TripStatus) {
+	t.Status = status
 }
 
 // SetDeletedAt sets the deletion timestamp of the trip

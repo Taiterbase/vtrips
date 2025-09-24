@@ -158,10 +158,10 @@ func UpdateTrip(c echo.Context) error {
 	)
 	trip, err := getTrip(c, orgID, tripID)
 	switch err {
-	case models.ErrTripNotFound:
-		return c.JSON(http.StatusNotFound, err.Error())
 	case nil:
 		break
+	case models.ErrTripNotFound:
+		return c.JSON(http.StatusNotFound, err.Error())
 	default:
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}

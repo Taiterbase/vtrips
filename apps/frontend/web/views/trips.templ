@@ -1,43 +1,72 @@
 package views
 
-templ TripsPartial(userName string) {
+templ TripsLayout(userName string, content templ.Component) {
   <div class="flex flex-grow flex-nowrap flex-col items-center overflow-hidden relative h-full overflow-x-hidden overflow-y-scroll">
-    <main class="h-full w-full mx-auto bg-neutral-950 relative flex-grow flex flex-col z-[1] px-8 md:px-10 lg:px-20 max-w-8xl">
+    <main class="h-full w-full mx-auto bg-neutral-950 relative flex-grow flex flex-col z-[1] px-4 md:px-10 lg:px-20 max-w-7xl">
       <div class="relative flex h-full w-full py-8">
-        <div class="flex flex-col h-full w-full items-center">
-          <div class="flex flex-col min-w-full justify-items-start items-center">
-            <div class="w-full pt-4 sm:pt-8 md:pt-12 lg:pt-16">
-              <div class="flex flex-row w-full justify-between items-center flex-nowrap">
-                <div class="flex-nowrap whitespace-nowrap flex flex-grow">
-                  <h1 class="text-4xl md:text-5xl font-semibold text-neutral-100">
-                    <span class="hidden md:block">Welcome, { userName }</span>
-                    <span class="block md:hidden"> Welcome </span>
-                  </h1>
+        <div class="flex flex-col h-full w-full items-start">
+          <div class="flex flex-col min-w-full">
+            <div class="w-full pt-4 sm:pt-8 md:pt-12 lg:pt-16 pb-4">
+              <div class="flex flex-col w-full gap-6">
+                <div class="flex flex-row w-full justify-between items-start">
+                  <div class="flex-nowrap whitespace-nowrap flex flex-grow">
+                    <h1 class="text-4xl md:text-5xl font-semibold text-neutral-100">
+                      <span class="hidden md:block">Manage Trips</span>
+                      <span class="block md:hidden">Trips</span>
+                    </h1>
+                  </div>
+                  <div class="flex flex-row gap-3">
+                    <button
+                      id="publish-button"
+                      class="inline-flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-4 py-2 text-lg font-semibold text-neutral-100 hover:bg-neutral-800"
+                      hx-put="/trips/publish"
+                      hx-target="#trip-dashboard"
+                      hx-swap="innerHTML"
+                    >
+                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 11l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      Publish Trip
+                    </button>
+                    <button
+                      id="draft-button"
+                      class="inline-flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-4 py-2 text-lg font-semibold text-neutral-100 hover:bg-neutral-800"
+                      hx-put="/trips/save"
+                      hx-target="#trip-dashboard"
+                      hx-swap="innerHTML"
+                    >
+                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 4h10v12H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                        <path d="M5 8h10" stroke="currentColor" stroke-width="2" />
+                      </svg>
+                      Save Draft
+                    </button>
+                  </div>
                 </div>
-                <div class="flex-nowrap whitespace-nowrap flex flex-grow-0"></div>
+                <div class="rounded-xl border border-indigo-500/40 bg-neutral-900/60 p-6 shadow-xl shadow-indigo-900/20">
+                  <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="flex flex-col gap-1">
+                      <p class="text-sm uppercase tracking-[0.3em] text-indigo-400">{ userName }, let’s design your next trip</p>
+                      <h2 class="text-2xl font-semibold text-neutral-50">Bring the experience to life in a few guided steps.</h2>
+                      <p class="text-neutral-300 text-base max-w-3xl">Collect key trip details, set your volunteer expectations, and publish when you’re ready. Your progress saves automatically.</p>
+                    </div>
+                    <div class="flex gap-4">
+                      <div class="flex flex-col items-center">
+                        <span class="text-4xl font-bold text-neutral-50">Draft</span>
+                        <span class="text-neutral-400 text-sm">Current status</span>
+                      </div>
+                      <div class="mt-2 hidden h-16 w-px bg-neutral-700 md:block" aria-hidden="true"></div>
+                      <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-neutral-200">Next checkpoint</span>
+                        <span class="text-neutral-400">Complete housing & pricing</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div id="page_content" class="py-12 lg:py-16 flex flex-col w-full h-full">
-              <div class="py-8 w-full h-full">
-                <div class="flex flex-row justify-between items-center w-full">
-                  <h2 class="text-neutral-100 text-3xl md:text-4xl font-medium">Trips this week</h2>
-                </div>
-                <div class="flex flex-col w-full h-full">
-                  <div class="flex flex-row w-full h-full flex-nowrap overflow-x-scroll justify-center items-center">
-                    <div class="bg-neutral-700 h-96 w-full rounded-lg"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="py-8 w-full h-full">
-                <div class="flex flex-row justify-between items-center w-full">
-                  <h2 class="text-neutral-100 text-3xl md:text-4xl font-medium">Pending applications</h2>
-                </div>
-                <div class="flex flex-col w-full h-full">
-                  <div class="flex flex-row w-full h-full flex-nowrap overflow-x-scroll justify-center items-center">
-                    <div class="bg-neutral-700 h-96 w-full rounded-lg"></div>
-                  </div>
-                </div>
-              </div>
+            <div class="w-full" id="trip-dashboard">
+              @content
             </div>
           </div>
         </div>
@@ -50,7 +79,7 @@ templ TripsPage(userName string) {
   <!DOCTYPE html>
   <html class="h-full bg-neutral-950">
     <head>
-      <title>Trips</title>
+      <title>Manage Trips</title>
       @HeaderAssets()
     </head>
     <body hx-boost="true" hx-target="#content" hx-select="#content" hx-swap="outerHTML" hx-push-url="true" class="h-full overflow-hidden">
@@ -58,7 +87,7 @@ templ TripsPage(userName string) {
         @Navbar(true)
         <div id="content" class="flex-1 min-h-0 overflow-hidden">
           <div id="partial" class="h-full">
-            @TripsPartial(userName)
+            @TripsLayout(userName, TripsOverviewStep())
           </div>
         </div>
       </div>
@@ -66,3 +95,134 @@ templ TripsPage(userName string) {
     </body>
   </html>
 }
+
+templ TripsOverviewStep() {
+  <div class="flex flex-col gap-8 pb-20">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr,1fr]">
+      <section class="rounded-lg bg-neutral-900/60 p-6 shadow-lg shadow-black/40 border border-neutral-800">
+        <header class="mb-6 flex items-start justify-between">
+          <div>
+            <h3 class="text-2xl font-semibold text-neutral-50">Trip Basics</h3>
+            <p class="text-neutral-400 text-base mt-1">Set the destination and core details volunteers will see first.</p>
+          </div>
+          <span class="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300">
+            <span class="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
+            Draft in progress
+          </span>
+        </header>
+
+        <form class="grid grid-cols-1 gap-6" hx-post="/trips" hx-target="#trip-dashboard" hx-swap="innerHTML">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Name</label>
+              <input
+                name="name"
+                type="text"
+                placeholder="Eg. Community health outreach in Lima"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Privacy Type</label>
+              <select
+                name="privacy_type"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="shared">Shared - volunteers share housing</option>
+                <option value="private">Private - individual rooms</option>
+                <option value="complete">Complete privacy guaranteed</option>
+                <option value="other">Other / Not sure yet</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Housing Type</label>
+              <select name="housing_type" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="house">House</option>
+                <option value="hostel">Hostel</option>
+                <option value="apartment">Apartment</option>
+                <option value="dormitory">Dormitory</option>
+                <option value="camping">Camping</option>
+                <option value="hotel">Hotel</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Type</label>
+              <select name="trip_type" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="local">Local project</option>
+                <option value="domestic">Domestic travel</option>
+                <option value="international">International travel</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">City</label>
+              <input
+                name="city"
+                type="text"
+                placeholder="City"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Country</label>
+              <input
+                name="country"
+                type="text"
+                placeholder="Country"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Start Date</label>
+              <input
+                name="start_date"
+                type="date"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">End Date</label>
+              <input
+                name="end_date"
+                type="date"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Volunteer Capacity</label>
+              <input
+                name="volunteer_limit"
+                type="number"
+                min="1"
+                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-neutral-200">Fee</label>
+                <input
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-neutral-200">Currency</label>
+                <select name="currency" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="usd">USD</option>
+                  <option value="eur">EUR</option>
+                  <option value="gbp">GBP</option>
+                  <option value="cad">CAD</option>
+                  <option value="mxn">MXN</option>
+                  <option value="other">Other</option>
