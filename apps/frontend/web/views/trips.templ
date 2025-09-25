@@ -1,5 +1,19 @@
 package views
 
+import "fmt"
+
+func HXTripPath(id string) string {
+  return fmt.Sprintf("/trips/%s", id)
+}
+
+func HXTripUpdatePath(id string) string {
+  return fmt.Sprintf("/trips/%s", id)
+}
+
+func HXTripStatusVals(status, orgID string) string {
+  return fmt.Sprintf("{\"status\":\"%s\",\"step\":\"review\",\"next_step\":\"review\",\"org_id\":\"%s\"}", status, orgID)
+}
+
 templ TripsLayout(userName string, content templ.Component) {
   <div class="flex flex-grow flex-nowrap flex-col items-center overflow-hidden relative h-full overflow-x-hidden overflow-y-scroll">
     <main class="h-full w-full mx-auto bg-neutral-950 relative flex-grow flex flex-col z-[1] px-4 md:px-10 lg:px-20 max-w-7xl">
@@ -17,29 +31,16 @@ templ TripsLayout(userName string, content templ.Component) {
                   </div>
                   <div class="flex flex-row gap-3">
                     <button
-                      id="publish-button"
-                      class="inline-flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-4 py-2 text-lg font-semibold text-neutral-100 hover:bg-neutral-800"
-                      hx-put="/trips/publish"
+                      class="inline-flex items-center gap-2 rounded-md bg-indigo-500 px-4 py-2 text-lg font-semibold text-neutral-100 hover:bg-indigo-600"
+                      hx-get="/trips/new"
                       hx-target="#trip-dashboard"
                       hx-swap="innerHTML"
+                      hx-push-url="true"
                     >
                       <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 11l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                       </svg>
-                      Publish Trip
-                    </button>
-                    <button
-                      id="draft-button"
-                      class="inline-flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-4 py-2 text-lg font-semibold text-neutral-100 hover:bg-neutral-800"
-                      hx-put="/trips/save"
-                      hx-target="#trip-dashboard"
-                      hx-swap="innerHTML"
-                    >
-                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 4h10v12H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-                        <path d="M5 8h10" stroke="currentColor" stroke-width="2" />
-                      </svg>
-                      Save Draft
+                      Create Trip
                     </button>
                   </div>
                 </div>
@@ -48,17 +49,12 @@ templ TripsLayout(userName string, content templ.Component) {
                     <div class="flex flex-col gap-1">
                       <p class="text-sm uppercase tracking-[0.3em] text-indigo-400">{ userName }, let’s design your next trip</p>
                       <h2 class="text-2xl font-semibold text-neutral-50">Bring the experience to life in a few guided steps.</h2>
-                      <p class="text-neutral-300 text-base max-w-3xl">Collect key trip details, set your volunteer expectations, and publish when you’re ready. Your progress saves automatically.</p>
+                      <p class="text-neutral-300 text-base max-w-3xl">Collect key trip details, set volunteer expectations, and publish when you’re ready. Your progress saves as you continue.</p>
                     </div>
-                    <div class="flex gap-4">
-                      <div class="flex flex-col items-center">
-                        <span class="text-4xl font-bold text-neutral-50">Draft</span>
-                        <span class="text-neutral-400 text-sm">Current status</span>
-                      </div>
-                      <div class="mt-2 hidden h-16 w-px bg-neutral-700 md:block" aria-hidden="true"></div>
-                      <div class="flex flex-col">
-                        <span class="text-sm font-semibold text-neutral-200">Next checkpoint</span>
-                        <span class="text-neutral-400">Complete housing & pricing</span>
+                    <div class="flex gap-4 text-neutral-300 text-sm">
+                      <div class="flex flex-col items-start">
+                        <span class="text-base uppercase tracking-[0.25em] text-indigo-300">Workflow</span>
+                        <span>Basics → Logistics → Review</span>
                       </div>
                     </div>
                   </div>
@@ -75,7 +71,7 @@ templ TripsLayout(userName string, content templ.Component) {
   </div>
 }
 
-templ TripsPage(userName string) {
+templ TripsPage(userName string, wizard templ.Component, summary templ.Component) {
   <!DOCTYPE html>
   <html class="h-full bg-neutral-950">
     <head>
@@ -87,7 +83,7 @@ templ TripsPage(userName string) {
         @Navbar(true)
         <div id="content" class="flex-1 min-h-0 overflow-hidden">
           <div id="partial" class="h-full">
-            @TripsLayout(userName, TripsOverviewStep())
+            @TripsLayout(userName, TripsDashboard(wizard, summary))
           </div>
         </div>
       </div>
@@ -96,133 +92,472 @@ templ TripsPage(userName string) {
   </html>
 }
 
-templ TripsOverviewStep() {
+templ TripsDashboard(wizard templ.Component, summary templ.Component) {
   <div class="flex flex-col gap-8 pb-20">
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr,1fr]">
-      <section class="rounded-lg bg-neutral-900/60 p-6 shadow-lg shadow-black/40 border border-neutral-800">
-        <header class="mb-6 flex items-start justify-between">
+    <div id="trip-wizard">
+      @wizard
+    </div>
+    <div id="trip-summary">
+      @summary
+    </div>
+  </div>
+}
+
+templ TripWizardProgress(current TripWizardStep) {
+  <aside class="rounded-lg border border-neutral-800 bg-neutral-900/40 p-6 shadow-lg shadow-black/40">
+    <h3 class="text-xl font-semibold text-neutral-50">Trip Progress</h3>
+    <ul class="mt-4 space-y-4">
+      <li class="flex items-center gap-3">
+        if isStepCompleted(current, TripWizardStepBasics) {
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        } else {
+          if isStepActive(current, TripWizardStepBasics) {
+            <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-indigo-500 text-indigo-300">1</div>
+          } else {
+            <div class="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-600 text-neutral-400">1</div>
+          }
+        }
+        <span class={wizardTextClass(current, TripWizardStepBasics)}>Basics (Name, Type, Location)</span>
+      </li>
+      <li class="flex items-center gap-3">
+        if isStepCompleted(current, TripWizardStepLogistics) {
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        } else {
+          if isStepActive(current, TripWizardStepLogistics) {
+            <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-indigo-500 text-indigo-300">2</div>
+          } else {
+            <div class="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-600 text-neutral-400">2</div>
+          }
+        }
+        <span class={wizardTextClass(current, TripWizardStepLogistics)}>Logistics (Capacity, Fees, Story)</span>
+      </li>
+      <li class="flex items-center gap-3">
+        if isStepCompleted(current, TripWizardStepReview) || isStepActive(current, TripWizardStepReview) {
+          <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-emerald-500 text-emerald-300">3</div>
+        } else {
+          <div class="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-600 text-neutral-400">3</div>
+        }
+        <span class={wizardTextClass(current, TripWizardStepReview)}>Review & Publish</span>
+      </li>
+    </ul>
+    <div class="mt-6 space-y-2 text-sm text-neutral-400">
+      <p><span class="font-semibold text-neutral-200">Tip:</span> Progress saves automatically each time you continue.</p>
+      <p>Volunteers only see the trip after it's marked live.</p>
+    </div>
+  </aside>
+}
+
+templ TripsWizardBasics(data TripsWizardData) {
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr,1fr]">
+    <section class="rounded-lg border border-neutral-800 bg-neutral-900/70 p-6 shadow-lg shadow-black/40">
+      <header class="mb-6 flex items-start justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.3em] text-indigo-400">Step 1 of 3</p>
+          <h3 class="text-2xl font-semibold text-neutral-50">Trip Basics</h3>
+          <p class="text-neutral-400 text-base mt-1">Set the destination and core details volunteers will see first.</p>
+        </div>
+        <span class="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300">
+          <span class="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
+          Draft in progress
+        </span>
+      </header>
+
+      <form class="grid grid-cols-1 gap-6" hx-post="/trips" hx-target="#trip-dashboard" hx-swap="innerHTML">
+        <input type="hidden" name="step" value={ TripWizardStepBasics } />
+        <input type="hidden" name="next_step" value={ TripWizardStepLogistics } />
+        <input type="hidden" name="org_id" value={ data.OrgID } />
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <h3 class="text-2xl font-semibold text-neutral-50">Trip Basics</h3>
-            <p class="text-neutral-400 text-base mt-1">Set the destination and core details volunteers will see first.</p>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Name</label>
+            <input
+              name="name"
+              type="text"
+              value={ formValue(data, "name") }
+              placeholder="Eg. Community health outreach in Lima"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
-          <span class="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300">
-            <span class="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
-            Draft in progress
-          </span>
-        </header>
-
-        <form class="grid grid-cols-1 gap-6" hx-post="/trips" hx-target="#trip-dashboard" hx-swap="innerHTML">
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Name</label>
-              <input
-                name="name"
-                type="text"
-                placeholder="Eg. Community health outreach in Lima"
-                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Privacy Type</label>
-              <select
-                name="privacy_type"
-                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="shared">Shared - volunteers share housing</option>
-                <option value="private">Private - individual rooms</option>
-                <option value="complete">Complete privacy guaranteed</option>
-                <option value="other">Other / Not sure yet</option>
-              </select>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Housing Type</label>
-              <select name="housing_type" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="house">House</option>
-                <option value="hostel">Hostel</option>
-                <option value="apartment">Apartment</option>
-                <option value="dormitory">Dormitory</option>
-                <option value="camping">Camping</option>
-                <option value="hotel">Hotel</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Type</label>
-              <select name="trip_type" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="local">Local project</option>
-                <option value="domestic">Domestic travel</option>
-                <option value="international">International travel</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Privacy Type</label>
+            <select
+              name="privacy_type"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="shared" selected={ formValue(data, "privacy_type") == "shared" }>Shared - volunteers share housing</option>
+              <option value="private" selected={ formValue(data, "privacy_type") == "private" }>Private - individual rooms</option>
+              <option value="complete" selected={ formValue(data, "privacy_type") == "complete" }>Complete privacy guaranteed</option>
+              <option value="other" selected={ formValue(data, "privacy_type") == "other" }>Other / Not sure yet</option>
+            </select>
           </div>
-
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">City</label>
-              <input
-                name="city"
-                type="text"
-                placeholder="City"
-                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Country</label>
-              <input
-                name="country"
-                type="text"
-                placeholder="Country"
-                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Housing Type</label>
+            <select name="housing_type" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="house" selected={ formValue(data, "housing_type") == "house" }>House</option>
+              <option value="hostel" selected={ formValue(data, "housing_type") == "hostel" }>Hostel</option>
+              <option value="apartment" selected={ formValue(data, "housing_type") == "apartment" }>Apartment</option>
+              <option value="dormitory" selected={ formValue(data, "housing_type") == "dormitory" }>Dormitory</option>
+              <option value="camping" selected={ formValue(data, "housing_type") == "camping" }>Camping</option>
+              <option value="hotel" selected={ formValue(data, "housing_type") == "hotel" }>Hotel</option>
+              <option value="other" selected={ formValue(data, "housing_type") == "other" }>Other</option>
+            </select>
           </div>
-
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Start Date</label>
-              <input
-                name="start_date"
-                type="date"
-                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">End Date</label>
-              <input
-                name="end_date"
-                type="date"
-                class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Type</label>
+            <select name="trip_type" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="local" selected={ formValue(data, "trip_type") == "local" }>Local project</option>
+              <option value="domestic" selected={ formValue(data, "trip_type") == "domestic" }>Domestic travel</option>
+              <option value="international" selected={ formValue(data, "trip_type") == "international" }>International travel</option>
+              <option value="other" selected={ formValue(data, "trip_type") == "other" }>Other</option>
+            </select>
           </div>
+        </div>
 
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">City</label>
+            <input
+              name="city"
+              type="text"
+              value={ formValue(data, "city") }
+              placeholder="City"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Country</label>
+            <input
+              name="country"
+              type="text"
+              value={ formValue(data, "country") }
+              placeholder="Country"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Start Date</label>
+            <input
+              name="start_date"
+              type="date"
+              value={ formValue(data, "start_date") }
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">End Date</label>
+            <input
+              name="end_date"
+              type="date"
+              value={ formValue(data, "end_date") }
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button
+            type="submit"
+            class="inline-flex items-center gap-2 rounded-md bg-indigo-500 px-6 py-3 text-lg font-semibold text-neutral-100 hover:bg-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Save & Continue
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    @TripWizardProgress(data.Step)
+  </div>
+}
+
+templ TripsWizardLogistics(data TripsWizardData) {
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr,1fr]">
+    <section class="rounded-lg border border-neutral-800 bg-neutral-900/70 p-6 shadow-lg shadow-black/40">
+      <header class="mb-6 flex items-start justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.3em] text-indigo-400">Step 2 of 3</p>
+          <h3 class="text-2xl font-semibold text-neutral-50">Trip Logistics</h3>
+          <p class="text-neutral-400 text-base mt-1">Share how volunteers will contribute and what to expect on the ground.</p>
+        </div>
+        <span class="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-300">
+          <span class="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
+          Details in progress
+        </span>
+      </header>
+
+      <form class="grid grid-cols-1 gap-6" hx-put={ HXTripUpdatePath(data.TripID) } hx-target="#trip-dashboard" hx-swap="innerHTML">
+        <input type="hidden" name="step" value={ TripWizardStepLogistics } />
+        <input type="hidden" name="next_step" value={ TripWizardStepReview } />
+        <input type="hidden" name="org_id" value={ data.OrgID } />
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Volunteer Capacity</label>
+            <input
+              name="volunteer_limit"
+              type="number"
+              min="1"
+              value={ formValue(data, "volunteer_limit") }
+              placeholder="How many volunteers can join?"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="mb-2 block text-sm font-semibold text-neutral-200">Volunteer Capacity</label>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Fee</label>
               <input
-                name="volunteer_limit"
+                name="price"
                 type="number"
-                min="1"
+                step="0.01"
+                value={ formValue(data, "price") }
+                placeholder="Eg. 450"
                 class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-neutral-200">Fee</label>
-                <input
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-200">Currency</label>
+              <select name="currency" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="usd" selected={ formValue(data, "currency") == "usd" }>USD</option>
+                <option value="eur" selected={ formValue(data, "currency") == "eur" }>EUR</option>
+                <option value="gbp" selected={ formValue(data, "currency") == "gbp" }>GBP</option>
+                <option value="cad" selected={ formValue(data, "currency") == "cad" }>CAD</option>
+                <option value="mxn" selected={ formValue(data, "currency") == "mxn" }>MXN</option>
+                <option value="other" selected={ formValue(data, "currency") == "other" }>Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Latitude</label>
+            <input
+              name="latitude"
+              type="number"
+              step="0.000001"
+              value={ formValue(data, "latitude") }
+              placeholder="Optional"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-neutral-200">Longitude</label>
+            <input
+              name="longitude"
+              type="number"
+              step="0.000001"
+              value={ formValue(data, "longitude") }
+              placeholder="Optional"
+              class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-semibold text-neutral-200">Mission Statement</label>
+          <textarea
+            name="mission"
+            rows="3"
+            placeholder="Summarize the mission for this trip."
+            class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >{ formValue(data, "mission") }</textarea>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-semibold text-neutral-200">Detailed Description</label>
+          <textarea
+            name="description"
+            rows="5"
+            placeholder="Outline travel, housing, and daily volunteer activities."
+            class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >{ formValue(data, "description") }</textarea>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-semibold text-neutral-200">Trip Status</label>
+          <select name="status" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="draft" selected={ formValue(data, "status") == "draft" || formValue(data, "status") == "" }>Draft</option>
+            <option value="complete" selected={ formValue(data, "status") == "complete" }>Complete (ready for review)</option>
+            <option value="listed" selected={ formValue(data, "status") == "listed" }>Listed (visible to volunteers)</option>
+            <option value="unlisted" selected={ formValue(data, "status") == "unlisted" }>Unlisted</option>
+          </select>
+        </div>
+
+        <div class="flex justify-between">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-md border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-200 hover:bg-neutral-800"
+            hx-get="/trips"
+            hx-target="#trip-dashboard"
+            hx-swap="innerHTML"
+          >
+            ← Back to basics
+          </button>
+          <button
+            type="submit"
+            class="inline-flex items-center gap-2 rounded-md bg-indigo-500 px-6 py-3 text-lg font-semibold text-neutral-100 hover:bg-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Save & Continue
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    @TripWizardProgress(data.Step)
+  </div>
+}
+
+templ TripReviewCard(summary TripSummary) {
+  <div class="rounded-lg border border-neutral-800 bg-neutral-900/80 p-4">
+    <div class="flex flex-col gap-2">
+      <span class="text-sm uppercase tracking-[0.2em] text-neutral-500">Trip</span>
+      <h4 class="text-2xl font-semibold text-neutral-50">{ summary.Name }</h4>
+      <p class="text-neutral-300">{ summary.Location }</p>
+      <p class="text-neutral-400 text-sm">{ summary.DateRange }</p>
+    </div>
+  </div>
+}
+
+templ TripsWizardReview(data TripsWizardData, summary TripSummary) {
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr,1fr]">
+    <section class="rounded-lg border border-neutral-800 bg-neutral-900/70 p-6 shadow-lg shadow-black/40">
+      <header class="mb-6 flex items-start justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.3em] text-indigo-400">Step 3 of 3</p>
+          <h3 class="text-2xl font-semibold text-neutral-50">Review & Publish</h3>
+          <p class="text-neutral-400 text-base mt-1">Double-check the trip story, logistics, and pricing before you publish.</p>
+        </div>
+        <span class="inline-flex items-center gap-2 rounded-full border border-indigo-400/40 px-3 py-1 text-sm font-medium text-indigo-200">
+          Ready to launch
+        </span>
+      </header>
+
+      <div class="grid grid-cols-1 gap-6">
+        @TripReviewCard(summary)
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="rounded-lg border border-neutral-800 bg-neutral-900/80 p-4">
+            <span class="text-sm uppercase tracking-[0.2em] text-neutral-500">Mission</span>
+            <p class="mt-2 text-neutral-200 whitespace-pre-line">{ formValue(data, "mission") }</p>
+          </div>
+          <div class="rounded-lg border border-neutral-800 bg-neutral-900/80 p-4">
+            <span class="text-sm uppercase tracking-[0.2em] text-neutral-500">Description</span>
+            <p class="mt-2 text-neutral-200 whitespace-pre-line">{ formValue(data, "description") }</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4">
+          <div class="rounded-lg border border-neutral-800 bg-neutral-950/80 px-4 py-3">
+            <p class="text-sm text-neutral-400">Volunteer Capacity</p>
+            <p class="text-lg font-semibold text-neutral-50">{ formValue(data, "volunteer_limit") }</p>
+          </div>
+          <div class="rounded-lg border border-neutral-800 bg-neutral-950/80 px-4 py-3">
+            <p class="text-sm text-neutral-400">Fee</p>
+            <p class="text-lg font-semibold text-neutral-50">{ formValue(data, "price") } { formValue(data, "currency") }</p>
+          </div>
+          <div class="rounded-lg border border-neutral-800 bg-neutral-950/80 px-4 py-3">
+            <p class="text-sm text-neutral-400">Status</p>
+            <p class="text-lg font-semibold text-neutral-50">{ summary.Status }</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between rounded-lg border border-neutral-800 bg-neutral-900/60 px-4 py-3">
+          <div class="flex flex-col">
+            <span class="text-sm font-semibold text-neutral-200">Next actions</span>
+            <span class="text-neutral-400 text-sm">Publish when the story and logistics look good. You can keep it as a draft if you need more time.</span>
+          </div>
+          <div class="flex flex-col gap-2 md:flex-row">
+            <button
+              class="inline-flex items-center gap-2 rounded-md border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-200 hover:bg-neutral-800"
+              hx-put={ HXTripUpdatePath(data.TripID) }
+              hx-target="#trip-dashboard"
+              hx-swap="innerHTML"
+              hx-vals={ HXTripStatusVals("draft", data.OrgID) }
+            >
+              Save as Draft
+            </button>
+            <button
+              class="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-emerald-400"
+              hx-put={ HXTripUpdatePath(data.TripID) }
+              hx-target="#trip-dashboard"
+              hx-swap="innerHTML"
+              hx-vals={ HXTripStatusVals("listed", data.OrgID) }
+            >
+              Publish Trip
+              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 10h10M10 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    @TripWizardProgress(data.Step)
+  </div>
+}
+
+templ TripsSummaryList(trips []TripSummary) {
+  <section class="rounded-lg border border-neutral-800 bg-neutral-900/60 p-6 shadow-lg shadow-black/40">
+    <header class="flex items-start justify-between">
+      <div>
+        <h3 class="text-2xl font-semibold text-neutral-50">Your Trips</h3>
+        <p class="text-neutral-400 text-base mt-1">Overview of all trips you're managing.</p>
+      </div>
+      <button class="inline-flex items-center gap-2 rounded-md border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-200 hover:bg-neutral-800" hx-get="/trips" hx-target="#trip-dashboard" hx-swap="innerHTML">
+        Refresh
+      </button>
+    </header>
+    <div class="mt-6">
+      if trips == nil || len(trips) == 0 {
+        <p class="text-neutral-400">No trips yet. Start by creating your first trip.</p>
+      } else {
+        <ul role="list" class="divide-y divide-neutral-800">
+          for _, trip := range trips {
+            <li class="flex items-center justify-between py-4">
+              <div class="flex min-w-0 gap-x-4">
+                <div class="min-w-0 flex-auto">
+                  <p class="text-lg font-semibold leading-6 text-neutral-50">{ trip.Name }</p>
+                  <p class="mt-1 truncate text-base leading-5 text-neutral-400">{ trip.Location }</p>
+                </div>
               </div>
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-neutral-200">Currency</label>
-                <select name="currency" class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="usd">USD</option>
-                  <option value="eur">EUR</option>
-                  <option value="gbp">GBP</option>
-                  <option value="cad">CAD</option>
-                  <option value="mxn">MXN</option>
-                  <option value="other">Other</option>
+              <div class="flex shrink-0 items-center gap-x-4">
+                <div class="hidden sm:flex sm:flex-col sm:items-end">
+                  <p class={ trip.StatusClass }>{ trip.Status }</p>
+                  <p class="mt-1 text-base leading-5 text-neutral-400">{ trip.DateRange }</p>
+                </div>
+                if trip.IsCurrent {
+                  <span class="rounded-full border border-indigo-500/60 px-3 py-1 text-xs font-semibold uppercase text-indigo-300">Current</span>
+                }
+                <button class="rounded-full bg-neutral-800 p-2 text-neutral-400 hover:text-neutral-300" hx-get={ HXTripPath(trip.ID) } hx-target="#trip-dashboard" hx-swap="innerHTML" hx-push-url="true">
+                  <span class="sr-only">View trip</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+}
+
+

@@ -79,8 +79,8 @@ templ LoginModal() {
                           </div>
                         </div>
                         <div class="mt-8">
-                          <button disabled type="submit" hx-swap="outerHTML" hx-push-url="false" hx-target="#modal-portal" hx-put="/auth/login" id="login-button"
-                            class="cursor-not-allowed disabled:bg-neutral-500 bg-indigo-500 hover:bg-indigo-600 inline-flex relative items-center justify-center align-middle overflow-hidden whitespace-nowrap select-none w-full font-semibold rounded-md h-12 text-lg">
+                          <button type="submit" hx-swap="outerHTML" hx-push-url="false" hx-target="#modal-portal" hx-put="/auth/login" id="login-button"
+                            class="bg-indigo-500 hover:bg-indigo-600 inline-flex relative items-center justify-center align-middle overflow-hidden whitespace-nowrap select-none w-full font-semibold rounded-md h-12 text-lg">
                             <div class="flex items-center flex-grow py-0 px-4">
                               <div class="flex-grow flex items-center justify-center">Log in</div>
                             </div>
@@ -118,15 +118,8 @@ templ LoginModal() {
     </div>
   </div>
   <script>
-    document.getElementById("username-input").addEventListener("input", toggleButtonState);
-    document.getElementById("password-input").addEventListener("input", toggleButtonState);
-    function toggleButtonState() {
-      var u = document.getElementById("username-input");
-      var p = document.getElementById("password-input");
-      var b = document.getElementById("login-button");
-      if (u.value.trim() !== "" && p.value.trim() !== "") { b.removeAttribute("disabled"); b.style.cursor = "pointer"; }
-      else { b.setAttribute("disabled", true); b.style.cursor = "not-allowed"; }
-    }
+    // ensure modal closes when login finishes via HTMX swap
+    document.getElementById("login-button").addEventListener("click", function(){})
   </script>
 }
 
@@ -207,8 +200,8 @@ templ SignupModal() {
                           </div>
                         </div>
                         <div class="mt-8">
-                          <button disabled type="submit" hx-swap="outerHTML" hx-push-url="false" hx-post="/auth/sign-up" hx-target="#modal-portal" id="signup-button"
-                            class="cursor-not-allowed disabled:bg-neutral-500 bg-indigo-500 hover:bg-indigo-600 inline-flex relative items-center justify-center align-middle overflow-hidden whitespace-nowrap select-none w-full font-semibold rounded-md h-12 text-lg">
+                          <button type="submit" hx-swap="outerHTML" hx-push-url="false" hx-post="/auth/sign-up" hx-target="#modal-portal" id="signup-button"
+                            class="bg-indigo-500 hover:bg-indigo-600 inline-flex relative items-center justify-center align-middle overflow-hidden whitespace-nowrap select-none w-full font-semibold rounded-md h-12 text-lg">
                             <div class="flex items-center flex-grow py-0 px-4">
                               <div class="flex-grow flex items-center justify-center">Sign up</div>
                             </div>
@@ -244,24 +237,6 @@ templ SignupModal() {
     </div>
   </div>
   <script>
-    (function(){
-      var u = document.getElementById('username');
-      var p = document.getElementById('password');
-      var e = document.getElementById('contact');
-      var b = document.getElementById('signup-button');
-      function check() {
-        if (!u || !p || !e || !b) return;
-        var ok = u.value.trim() !== '' && p.value.trim() !== '' && e.value.trim() !== '';
-        if (ok) { b.removeAttribute('disabled'); b.style.cursor = 'pointer'; }
-        else { b.setAttribute('disabled', true); b.style.cursor = 'not-allowed'; }
-      }
-      ['input','change','keyup','focus'].forEach(function(ev){
-        u && u.addEventListener(ev, check);
-        p && p.addEventListener(ev, check);
-        e && e.addEventListener(ev, check);
-      });
-      setTimeout(check, 0);
-      setTimeout(check, 250);
-    })();
+    document.getElementById('signup-button').addEventListener('click', function(){})
   </script>
 }
